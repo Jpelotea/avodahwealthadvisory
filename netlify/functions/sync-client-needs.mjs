@@ -148,7 +148,10 @@ export default {
       throw new Error("Google Sheets sync is missing its Netlify environment variables.");
     }
 
-    const submissionId = crypto.randomUUID();
+    const requestedSubmissionId = clean(data.lead_submission_id);
+    const submissionId = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(requestedSubmissionId)
+      ? requestedSubmissionId
+      : crypto.randomUUID();
     const submittedAt = new Date().toISOString();
     const row = isClientNeedsCheck
       ? buildClientNeedsRow(data, submissionId, submittedAt, formName || "client-needs-check")
