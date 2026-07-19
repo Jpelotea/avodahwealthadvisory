@@ -26,6 +26,32 @@ const BRANCHES = {
 };
 
 const clean = (value) => String(value ?? "").trim();
+const ATTRIBUTION_FIELDS = [
+  "utm_source",
+  "utm_medium",
+  "utm_campaign",
+  "utm_content",
+  "utm_term",
+  "campaign_id",
+  "adset_id",
+  "ad_id",
+  "fbclid",
+  "landing_page",
+  "referrer",
+];
+
+const cleanAttribution = (value) =>
+  clean(value).replace(/[|\r\n]+/g, " ").replace(/\s+/g, " ").slice(0, 500);
+
+const buildAttributionPayload = (data) => {
+  const parts = ["form_name=client-needs-check"];
+  ATTRIBUTION_FIELDS.forEach((field) => {
+    const value = cleanAttribution(data[field]);
+    if (value) parts.push(field + "=" + value);
+  });
+  return parts.join(" | ");
+};
+
 
 export default {
   async formSubmitted(event) {
@@ -78,7 +104,7 @@ export default {
       "",
       "",
       "",
-      "client-needs-check",
+      buildAttributionPayload(data),
     ];
 
     const response = await fetch(webhookUrl, {

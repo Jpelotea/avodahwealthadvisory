@@ -4,6 +4,79 @@ const nav = document.querySelector(".nav");
 const faqItems = document.querySelectorAll(".faq-list details");
 const contactForm = document.querySelector(".contact-form");
 const LEAD_SUBMITTED_KEY = "avodahLeadSubmitted";
+const ATTRIBUTION_STORAGE_KEY = "avodahAttribution";
+const ATTRIBUTION_FIELDS = [
+  "utm_source",
+  "utm_medium",
+  "utm_campaign",
+  "utm_content",
+  "utm_term",
+  "campaign_id",
+  "adset_id",
+  "ad_id",
+  "fbclid",
+  "landing_page",
+  "referrer",
+];
+
+const sanitizeAttributionUrl = (value) => {
+  if (!value) return "";
+  try {
+    const url = new URL(value, window.location.origin);
+    return url.origin + url.pathname;
+  } catch {
+    return "";
+  }
+};
+
+const readAttribution = () => {
+  try {
+    return JSON.parse(sessionStorage.getItem(ATTRIBUTION_STORAGE_KEY) || "{}");
+  } catch {
+    return {};
+  }
+};
+
+const captureAttribution = () => {
+  const attribution = readAttribution();
+  const params = new URLSearchParams(window.location.search);
+
+  ATTRIBUTION_FIELDS.slice(0, 9).forEach((field) => {
+    const value = params.get(field);
+    if (value) attribution[field] = value.slice(0, 500);
+  });
+
+  if (!attribution.landing_page) {
+    attribution.landing_page = window.location.origin + window.location.pathname;
+  }
+  if (!attribution.referrer && document.referrer) {
+    attribution.referrer = sanitizeAttributionUrl(document.referrer);
+  }
+
+  try {
+    sessionStorage.setItem(ATTRIBUTION_STORAGE_KEY, JSON.stringify(attribution));
+  } catch {
+    // Some strict privacy settings can block browser storage.
+  }
+
+  return attribution;
+};
+
+const decorateNeedsCheckLinks = (attribution) => {
+  document.querySelectorAll('a[href^="/needs-check"]').forEach((link) => {
+    const target = new URL(link.href, window.location.origin);
+    ATTRIBUTION_FIELDS.forEach((field) => {
+      if (attribution[field] && !target.searchParams.has(field)) {
+        target.searchParams.set(field, attribution[field]);
+      }
+    });
+    link.href = target.pathname + target.search;
+  });
+};
+
+const avodahAttribution = captureAttribution();
+decorateNeedsCheckLinks(avodahAttribution);
+
 
 const rememberLeadSubmission = () => {
   const leadId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
