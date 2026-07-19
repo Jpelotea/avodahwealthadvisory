@@ -16,6 +16,7 @@
   <meta name="robots" content="index,follow">
   <link rel="icon" href="/avodah-logo-mark.png">
   <link rel="stylesheet" href="/needs-check.css?v=20260720-1">
+<link href="/booking.css?v=20260720-booking-v1" rel="stylesheet">
 </head>
 <body>
   <a class="skip-link" href="#intake">Skip to questions</a>
@@ -44,6 +45,7 @@
 
       <form name="client-needs-check" method="POST" action="/needs-check.html?submitted=true" data-netlify="true" data-netlify-honeypot="bot-field" id="needs-form" novalidate>
         <input type="hidden" name="form-name" value="client-needs-check">
+        <input type="hidden" name="lead_submission_id" value="">
         <input type="hidden" name="service_path" id="service-path">
         <input type="hidden" name="primary_need_label" id="primary-need-label">
         <input type="hidden" name="protection_for">
@@ -133,6 +135,23 @@
         <p class="eyebrow">Needs check complete</p>
         <h2 id="confirmation-title">Thank you.</h2>
         <p id="confirmation-copy"></p>
+        <section class="booking-widget" data-booking-widget hidden aria-labelledby="needs-booking-title">
+  <p class="section-kicker">Optional next step</p>
+  <h2 id="needs-booking-title">Choose a Consultation Schedule</h2>
+  <p>Select an available 30-minute Google Meet consultation with Ma’am Christine. No account or sign-in is required.</p>
+  <button class="button button-primary" type="button" data-booking-open>View Available Times</button>
+  <div class="booking-panel" data-booking-panel hidden>
+    <p class="booking-status" data-booking-status aria-live="polite"></p>
+    <label class="booking-date-label">Available date
+      <select data-booking-date aria-label="Available consultation date"></select>
+    </label>
+    <fieldset class="booking-time-fieldset"><legend>Available time</legend><div class="booking-time-grid" data-booking-times></div></fieldset>
+    <p class="booking-selection" data-booking-selection aria-live="polite"></p>
+    <button class="button button-primary" type="button" data-booking-confirm disabled>Confirm Appointment</button>
+  </div>
+  <div class="booking-success" data-booking-success hidden tabindex="-1"></div>
+  <p class="booking-fallback" data-booking-fallback hidden>Your consultation request remains active for manual follow-up. Avodah will contact you using your preferred method.</p>
+</section>
         <div class="confirmation-actions"><a class="button button-primary" href="/services.html">Explore Avodah Services</a><a class="button button-secondary" href="/">Return Home</a></div>
         <p class="privacy-note">Please do not send passwords, account numbers, complete government ID numbers, or medical records through public messaging channels.</p>
       </section>
@@ -141,6 +160,7 @@
     <aside class="privacy-strip"><strong>Privacy first:</strong> Your answers stay in this form until you submit. Contact details are optional unless you request a consultation. Avodah uses submitted information only for inquiry follow-up and service coordination.</aside>
   </main>
   <footer><span>© 2026 Avodah Wealth Advisory</span><nav aria-label="Legal"><a href="/privacy-policy.html">Privacy Policy</a><a href="/terms.html">Terms</a><a href="/disclaimer.html">Disclaimer</a></nav></footer>
-  <script src="/needs-check.js?v=20260720-conversion-v1"></script>
+  <script src="/booking.js?v=20260720-booking-v1"></script>
+  <script src="/needs-check.js?v=20260720-booking-v1"></script>
 </body>
 </html>
