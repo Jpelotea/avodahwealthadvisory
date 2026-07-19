@@ -34,6 +34,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&amp;family=Open+Sans:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
 <link href="styles.css?v=20260703-audit-refactor-final-v1" rel="stylesheet"/>
 <link href="avodah-visibility-final.css?v=20260704-final-visibility-v1" rel="stylesheet"/>
+<link href="/booking.css?v=20260720-booking-v1" rel="stylesheet"/>
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to main content</a>
@@ -67,6 +68,23 @@
 <li>For existing insurance review: Your active policy contracts.</li>
 </ol>
 </div>
+<section class="booking-widget" data-booking-widget hidden aria-labelledby="booking-title">
+  <p class="section-kicker">Optional next step</p>
+  <h2 id="booking-title">Choose a Consultation Schedule</h2>
+  <p>Select an available 30-minute Google Meet consultation with Ma’am Christine. No account or sign-in is required.</p>
+  <button class="button button-primary" type="button" data-booking-open>View Available Times</button>
+  <div class="booking-panel" data-booking-panel hidden>
+    <p class="booking-status" data-booking-status aria-live="polite"></p>
+    <label class="booking-date-label">Available date
+      <select data-booking-date aria-label="Available consultation date"></select>
+    </label>
+    <fieldset class="booking-time-fieldset"><legend>Available time</legend><div class="booking-time-grid" data-booking-times></div></fieldset>
+    <p class="booking-selection" data-booking-selection aria-live="polite"></p>
+    <button class="button button-primary" type="button" data-booking-confirm disabled>Confirm Appointment</button>
+  </div>
+  <div class="booking-success" data-booking-success hidden tabindex="-1"></div>
+  <p class="booking-fallback" data-booking-fallback hidden>Your consultation request remains active for manual follow-up. Avodah will contact you using your preferred method.</p>
+</section>
 <div class="thank-you-actions">
 <a class="button button-primary thank-you-home-button" href="/">Return to Homepage</a>
 <a class="button button-secondary thank-you-messenger-button" href="https://m.me/1054966131030483" rel="noopener" target="_blank">Message on Messenger</a>
@@ -112,6 +130,7 @@
     </div>
   </div>
 </footer>
-<script src="script.js?v=20260702-confirmed-fixes-v1"></script>
+<script src="/script.js?v=20260720-booking-v1"></script>
+<script src="/booking.js?v=20260720-booking-v1"></script>
 </body>
 </html>
