@@ -30,15 +30,23 @@ const clean = (value) => String(value ?? "").trim();
 export default {
   async formSubmitted(event) {
     const data = event.data || {};
+    const formName = clean(data["form-name"]);
 
-    if (clean(data["form-name"]) !== "client-needs-check") return;
+    // Netlify may omit the hidden form-name field from a verified event.
+    // The intake's two routing fields provide a safe secondary identifier.
+    const isClientNeedsCheck =
+      formName === "client-needs-check" ||
+      (Boolean(clean(data.primary_need)) && Boolean(clean(data.service_path)));
+
+    if (!isClientNeedsCheck) return;
+
+    console.log("Received a verified client-needs-check submission.");
 
     const webhookUrl = Netlify.env.get("GOOGLE_SHEETS_WEBHOOK_URL");
     const webhookSecret = Netlify.env.get("GOOGLE_SHEETS_WEBHOOK_SECRET");
 
     if (!webhookUrl || !webhookSecret) {
-      console.error("Google Sheets sync is not configured.");
-      return;
+      throw new Error("Google Sheets sync is missing its Netlify environment variables.");
     }
 
     const branch = BRANCHES[clean(data.primary_need)] || [];
