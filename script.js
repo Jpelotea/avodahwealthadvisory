@@ -74,8 +74,22 @@ const decorateNeedsCheckLinks = (attribution) => {
   });
 };
 
+
+const populateLeadTrackingFields = (form, attribution) => {
+  if (!form) return;
+
+  ATTRIBUTION_FIELDS.forEach((field) => {
+    const input = form.querySelector(`input[name="${field}"]`);
+    if (input) input.value = attribution[field] || "";
+  });
+
+  const sourcePage = form.querySelector('input[name="source_page"]');
+  if (sourcePage) sourcePage.value = window.location.pathname;
+};
+
 const avodahAttribution = captureAttribution();
 decorateNeedsCheckLinks(avodahAttribution);
+populateLeadTrackingFields(contactForm, avodahAttribution);
 
 
 const rememberLeadSubmission = () => {
