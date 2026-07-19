@@ -4,6 +4,7 @@ const nav = document.querySelector(".nav");
 const faqItems = document.querySelectorAll(".faq-list details");
 const contactForm = document.querySelector(".contact-form");
 const LEAD_SUBMITTED_KEY = "avodahLeadSubmitted";
+const BOOKING_LEAD_KEY = "avodahBookingLeadId";
 const ATTRIBUTION_STORAGE_KEY = "avodahAttribution";
 const ATTRIBUTION_FIELDS = [
   "utm_source",
@@ -92,15 +93,23 @@ decorateNeedsCheckLinks(avodahAttribution);
 populateLeadTrackingFields(contactForm, avodahAttribution);
 
 
-const rememberLeadSubmission = () => {
-  const leadId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+const createLeadSubmissionId = () => {
+  if (window.crypto && typeof window.crypto.randomUUID === "function") return window.crypto.randomUUID();
+  const bytes = new Uint8Array(16);
+  window.crypto.getRandomValues(bytes);
+  bytes[6] = (bytes[6] & 15) | 64;
+  bytes[8] = (bytes[8] & 63) | 128;
+  const hex = [...bytes].map((value) => value.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`;
+};
 
+const rememberLeadSubmission = (leadId) => {
   try {
     sessionStorage.setItem(LEAD_SUBMITTED_KEY, leadId);
+    sessionStorage.setItem(BOOKING_LEAD_KEY, leadId);
   } catch {
     // Some strict privacy settings can block browser storage.
   }
-
   return leadId;
 };
 
@@ -331,6 +340,10 @@ if (contactForm) {
       return;
     }
 
+    const leadIdInput = contactForm.querySelector('input[name="lead_submission_id"]');
+    const leadId = createLeadSubmissionId();
+    if (leadIdInput) leadIdInput.value = leadId;
+
     const formData = new FormData(contactForm);
     const encoded = new URLSearchParams(formData).toString();
     const endpoint = "/";
@@ -359,7 +372,7 @@ if (contactForm) {
         if (error) error.textContent = "";
       });
       showStatus("Thank you. Your inquiry has been sent. Redirecting you to the next step...", "success");
-      rememberLeadSubmission();
+      rememberLeadSubmission(leadId);
       window.location.href = "/thank-you.html";
     } catch {
       showStatus("We could not send your inquiry just now. Please try again in a moment.", "error");
