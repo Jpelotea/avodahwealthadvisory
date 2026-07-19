@@ -1,0 +1,17 @@
+Validation summary
+HTML pages: 31
+Missing local references: 0
+Broken internal anchors: 0
+H1 issues: 0
+Duplicate ID issues: 0
+Navigation issues: 0
+
+Missing refs:
+
+Anchor errors:
+
+H1 issues:
+
+Duplicate IDs:
+
+Nav issues:

@@ -1,0 +1,7 @@
+UI System Fix Validation
+HTML pages: 31
+Missing local references: 0
+H1 issues: []
+Footer missing: []
+Source ZIP: Avodah_Wealth_Advisory_contact_checklist_fixed.zip
+CSS version: 20260703-ui-system-final-v1

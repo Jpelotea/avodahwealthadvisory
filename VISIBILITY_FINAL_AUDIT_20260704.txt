@@ -1,0 +1,29 @@
+Avodah Visibility Final Audit - July 4, 2026
+
+Issue inspected:
+- Text remained too dark on dark green homepage sections even after earlier visibility rules.
+- Affected areas included:
+  - Our Practice: Guidance & Assistance Only
+  - Our Advisory Services
+  - Free Planning Guides / checklist CTA
+
+Root cause:
+- Older global typography rules outside the CSS layer used dark text colors with !important.
+- Earlier visibility fixes were placed inside a CSS layer, so the browser cascade still allowed the older unlayered typography rules to win.
+
+Final fix:
+- Added avodah-visibility-final.css as a separate unlayered stylesheet.
+- Loaded avodah-visibility-final.css after styles.css on all 31 HTML pages.
+- Added final high-specificity rules for dark green homepage sections, dark hero sections, and white page intro sections.
+
+Validation completed:
+- Confirmed all 31 HTML pages load avodah-visibility-final.css after styles.css.
+- Confirmed the affected homepage sections exist and are covered by final selectors.
+- Confirmed final selectors cover headings, paragraphs, strong text, service card text, and CTA text.
+- Confirmed no mojibake markers were found in HTML, CSS, or JS.
+- Confirmed JavaScript syntax passed.
+- Confirmed local HTML references, CSS url() references, and sitemap URLs resolve locally.
+
+Note:
+- This package uses a new stylesheet URL with a cache-busting query string:
+  avodah-visibility-final.css?v=20260704-final-visibility-v1

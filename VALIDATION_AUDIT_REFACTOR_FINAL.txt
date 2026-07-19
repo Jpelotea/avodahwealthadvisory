@@ -1,0 +1,9 @@
+HTML pages: 31
+Pages with CSS version mismatch: none
+H1 issues: none
+Duplicate IDs: none
+Missing footer: none
+Contact clean-contact-item count: 5
+Contact legacy contact-methods count: 0
+Netlify form intact: True
+Missing local refs: none

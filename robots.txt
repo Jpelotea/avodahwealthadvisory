@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://avodahwealthadvisory.netlify.app/sitemap.xml

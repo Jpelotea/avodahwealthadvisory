@@ -1,0 +1,1 @@
+Fixed contact page layout overlap, simplified Free Checklists page with accordion categories, and added final footer/contact CSS overrides.

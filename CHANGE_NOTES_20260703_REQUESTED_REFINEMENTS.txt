@@ -1,0 +1,1 @@
+Applied requested homepage, services, free checklists, about, thank-you, footer, and non-red button refinements. Preserved GA4, Netlify Forms, lead tracking, CSP headers, sitemap, robots.txt, and no-chatbot requirement.

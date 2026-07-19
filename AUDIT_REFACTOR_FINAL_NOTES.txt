@@ -1,0 +1,13 @@
+Avodah Wealth Advisory - Final Audit Refactor Notes
+
+Base: Avodah_Wealth_Advisory_a11y_maintenance_fixed.zip
+CSS version: styles.css?v=20260703-audit-refactor-final-v1
+
+Implemented:
+- Purged legacy contact-page contact-method markup from contact.html.
+- Rebuilt contact sidebar as one clean, accessible .clean-contact-sidebar / .clean-contact-list component.
+- Removed the dead-node hiding selector .contact-page .contact-methods:not(.clean-contact-list).
+- Added CSS @layer ui.system.final with tokens, contact component rules, partner logo rules, and mobile footer touch-target rules.
+- Added narrow compatibility assertions only where required to safely override legacy patches.
+- Added mobile footer legal link vertical spacing and tap-target padding below 640px.
+- Preserved Netlify form attributes, GA4 tracking, CSP configuration, and all public page URLs.

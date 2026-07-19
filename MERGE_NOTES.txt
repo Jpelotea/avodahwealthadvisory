@@ -1,0 +1,21 @@
+Avodah hybrid merge notes
+
+Base: earlier fixed ZIP.
+Selective improvements incorporated from the updated ZIP:
+- Stronger homepage positioning around compliance-safe guidance in Butuan City.
+- Clearer guidance-and-assistance-only explanation on the homepage.
+- Partner section updated to reflect confirmed accredited partners while keeping outcome disclaimers.
+- Richer About page scope clarification.
+- Stronger Privacy Policy, Terms of Use, and Disclaimer content.
+- Improved Thank You next-step guidance.
+- Improved 404 recovery copy.
+- Added non-technical README.
+
+Intentionally not imported from the updated ZIP:
+- AI Studio / Vite / Gemini scaffolding.
+- SVG-as-PNG/JPG replacement assets.
+- Reduced services page.
+- Reduced free checklists page.
+- Weaker Netlify form structure.
+- Missing netlify.toml.
+

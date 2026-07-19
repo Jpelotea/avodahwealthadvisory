@@ -1,0 +1,272 @@
+[build]
+  publish = "."
+
+[[redirects]]
+  from = "/services"
+  to = "/services.html"
+  status = 301
+
+[[redirects]]
+  from = "/free-checklists"
+  to = "/free-checklists.html"
+  status = 301
+
+[[redirects]]
+  from = "/thank-you"
+  to = "/thank-you.html"
+  status = 301
+
+[[redirects]]
+  from = "/privacy-policy"
+  to = "/privacy-policy.html"
+  status = 301
+
+[[redirects]]
+  from = "/terms"
+  to = "/terms.html"
+  status = 301
+
+[[redirects]]
+  from = "/disclaimer"
+  to = "/disclaimer.html"
+  status = 301
+
+[[redirects]]
+  from = "/financial-guidance-butuan-city"
+  to = "/financial-guidance-butuan-city.html"
+  status = 301
+
+[[redirects]]
+  from = "/insurance-protection-filipino-families"
+  to = "/insurance-protection-filipino-families.html"
+  status = 301
+
+[[redirects]]
+  from = "/financial-planning-ofws"
+  to = "/financial-planning-ofws.html"
+  status = 301
+
+[[redirects]]
+  from = "/financial-protection-seafarers"
+  to = "/financial-protection-seafarers.html"
+  status = 301
+
+[[redirects]]
+  from = "/hospitalization-benefit-guidance"
+  to = "/hospitalization-benefit-guidance.html"
+  status = 301
+
+[[redirects]]
+  from = "/critical-illness-coverage-guide"
+  to = "/critical-illness-coverage-guide.html"
+  status = 301
+
+[[redirects]]
+  from = "/travel-ticketing-assistance"
+  to = "/travel-ticketing-assistance.html"
+  status = 301
+
+[[redirects]]
+  from = "/business-opportunity-avodah"
+  to = "/business-opportunity-avodah.html"
+  status = 301
+
+[[redirects]]
+  from = "/before-applying-for-a-loan"
+  to = "/before-applying-for-a-loan.html"
+  status = 301
+
+[[redirects]]
+  from = "/ofw-loan-assistance"
+  to = "/ofw-loan-assistance.html"
+  status = 301
+
+[[redirects]]
+  from = "/business-protection-planning"
+  to = "/business-protection-planning.html"
+  status = 301
+
+[[redirects]]
+  from = "/non-life-insurance-assistance"
+  to = "/non-life-insurance-assistance.html"
+  status = 301
+
+[[redirects]]
+  from = "/travel-visa-assistance"
+  to = "/travel-visa-assistance.html"
+  status = 301
+
+[[redirects]]
+  from = "/bank-account-opening-assistance"
+  to = "/bank-account-opening-assistance.html"
+  status = 301
+
+[[redirects]]
+  from = "/life-insurance-guidance"
+  to = "/life-insurance-guidance.html"
+  status = 301
+
+[[redirects]]
+  from = "/seafarers-loan-assistance"
+  to = "/seafarers-loan-assistance.html"
+  status = 301
+
+[[redirects]]
+  from = "/car-insurance-assistance"
+  to = "/car-insurance-assistance.html"
+  status = 301
+
+[[redirects]]
+  from = "/policy-review-claims-assistance"
+  to = "/policy-review-claims-assistance.html"
+  status = 301
+
+[[redirects]]
+  from = "/services/insurance-protection-filipino-families"
+  to = "/insurance-protection-filipino-families.html"
+  status = 301
+
+[[redirects]]
+  from = "/services/financial-planning-for-ofws"
+  to = "/financial-planning-ofws.html"
+  status = 301
+
+[[redirects]]
+  from = "/services/financial-protection-for-seafarers"
+  to = "/financial-protection-seafarers.html"
+  status = 301
+
+[[redirects]]
+  from = "/services/critical-illness-coverage-guide"
+  to = "/critical-illness-coverage-guide.html"
+  status = 301
+
+[[redirects]]
+  from = "/services/hospitalization-benefit-guidance"
+  to = "/hospitalization-benefit-guidance.html"
+  status = 301
+
+[[redirects]]
+  from = "/services/before-applying-for-a-loan"
+  to = "/before-applying-for-a-loan.html"
+  status = 301
+
+[[redirects]]
+  from = "/services/ofw-loan-assistance"
+  to = "/ofw-loan-assistance.html"
+  status = 301
+
+[[redirects]]
+  from = "/services/business-protection-planning"
+  to = "/business-protection-planning.html"
+  status = 301
+
+[[redirects]]
+  from = "/services/non-life-insurance-assistance"
+  to = "/non-life-insurance-assistance.html"
+  status = 301
+
+[[redirects]]
+  from = "/services/travel-visa-assistance"
+  to = "/travel-visa-assistance.html"
+  status = 301
+
+[[redirects]]
+  from = "/services/bank-account-opening-assistance"
+  to = "/bank-account-opening-assistance.html"
+  status = 301
+
+[[redirects]]
+  from = "/about"
+  to = "/about.html"
+  status = 301
+
+[[redirects]]
+  from = "/contact"
+  to = "/contact.html"
+  status = 301
+
+[[redirects]]
+  from = "/services/life-insurance-guidance"
+  to = "/life-insurance-guidance.html"
+  status = 301
+
+[[redirects]]
+  from = "/services/seafarers-loan-assistance"
+  to = "/seafarers-loan-assistance.html"
+  status = 301
+
+[[redirects]]
+  from = "/services/car-insurance-assistance"
+  to = "/car-insurance-assistance.html"
+  status = 301
+
+[[redirects]]
+  from = "/services/policy-review-claims-assistance"
+  to = "/policy-review-claims-assistance.html"
+  status = 301
+
+[[redirects]]
+  from = "/services/estate-tax-planning-guidance"
+  to = "/estate-tax-planning-guidance.html"
+  status = 301
+
+[[redirects]]
+  from = "/services/government-loan-assistance"
+  to = "/government-loan-assistance.html"
+  status = 301
+
+[[redirects]]
+  from = "/services/investment-planning-portfolio-review"
+  to = "/investment-planning-portfolio-review.html"
+  status = 301
+
+[[redirects]]
+  from = "/estate-tax-planning-guidance"
+  to = "/estate-tax-planning-guidance.html"
+  status = 301
+
+[[redirects]]
+  from = "/government-loan-assistance"
+  to = "/government-loan-assistance.html"
+  status = 301
+
+[[redirects]]
+  from = "/investment-planning-portfolio-review"
+  to = "/investment-planning-portfolio-review.html"
+  status = 301
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Content-Security-Policy = "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; script-src 'self' https://www.googletagmanager.com 'sha256-YqF4BNRPuZNe6lTvrlHU8oQd3r70Tvw/CyD2nf6sas8=' 'sha256-IBFLZyMNvjTVRTQOuRZp+4CnfnUMTUr2ir8h5bhiRiY=' 'sha256-hH1/CaBNI5ipilxCxUcEaRbULNigqCup2LqoDxW8BFY=' 'sha256-IpxLubtRJoPgPTgxtumf2NXIjhwuiEtU1pzmce+Q0Jo='; script-src-elem 'self' https://www.googletagmanager.com 'sha256-YqF4BNRPuZNe6lTvrlHU8oQd3r70Tvw/CyD2nf6sas8=' 'sha256-IBFLZyMNvjTVRTQOuRZp+4CnfnUMTUr2ir8h5bhiRiY=' 'sha256-hH1/CaBNI5ipilxCxUcEaRbULNigqCup2LqoDxW8BFY=' 'sha256-IpxLubtRJoPgPTgxtumf2NXIjhwuiEtU1pzmce+Q0Jo='; script-src-attr 'none'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.google-analytics.com https://*.googletagmanager.com https://*.g.doubleclick.net; connect-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://*.g.doubleclick.net; form-action 'self'; upgrade-insecure-requests"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+
+[[headers]]
+  for = "/*.webp"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.png"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.jpg"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=3600, must-revalidate"
+
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=3600, must-revalidate"

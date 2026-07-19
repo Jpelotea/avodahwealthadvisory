@@ -1,0 +1,11 @@
+Avodah Wealth Advisory UX refinement patch
+
+Changes made based on deployed-site review screenshots:
+- Cleaned footer contact layout into a vertical list.
+- Added inline Facebook and Messenger icons while keeping visible link text as Facebook and Messenger.
+- Reduced footer text weight so only the brand name and tagline remain bold.
+- Removed duplicate consent paragraph from both contact forms; kept one required checkbox with the full compliance-safe consent text and privacy-policy link.
+- Updated the contact page hero by removing the visible “Contact Avodah” kicker and replacing the description with more relevant contact-page guidance.
+- Cleaned the services page by removing page links from service bullet lists, arranging service category cards vertically, and moving the Next Step panel below the services list.
+- Kept GA4, Netlify Forms, sitemap, robots, and Netlify security headers intact.
+- No AI app scaffolding was added.

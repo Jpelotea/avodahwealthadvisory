@@ -1,0 +1,5 @@
+Validation completed.
+No critical validation errors found.
+HTML pages: 31
+Service category cards: 9
+Audience cards: 4

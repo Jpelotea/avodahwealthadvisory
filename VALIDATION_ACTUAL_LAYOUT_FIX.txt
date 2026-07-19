@@ -1,0 +1,1 @@
+Applied actual layout fix with new CSS cache-busting version, partner grid, process cards, contact two-column layout, and compact footer overrides.

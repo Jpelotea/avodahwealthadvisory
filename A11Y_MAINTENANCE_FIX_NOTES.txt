@@ -1,0 +1,10 @@
+Avodah Wealth Advisory — Accessibility and Maintenance Fix Notes
+
+Applied 2026-07-03:
+- Added final readable contrast token layer using #2d3b33 for body/muted text.
+- Restored visible text labels and detail text for contact-method and clean-contact-item links.
+- Reworked contact sidebar spacing to prevent overlap and preserve accessible labels.
+- Reworked partner logo layout to use flexible wrapping while preserving original logo colors.
+- Removed green text conflict from About page Brand Promise section via final CSS layer.
+- Added stable footer containment and sticky-bottom page structure.
+- Kept Netlify Forms, GA4, CSP setup, sitemap, robots, and no-chatbot requirement intact.

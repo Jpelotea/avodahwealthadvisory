@@ -1,0 +1,7 @@
+HTML pages: 31
+Unique inline script hashes: 3
+Inline script hashes covered by CSP: yes
+GA4 tracking ID present: True
+netlify.toml present: True
+sitemap.xml present: True
+robots.txt present: True

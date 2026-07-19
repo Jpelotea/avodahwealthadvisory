@@ -1,0 +1,27 @@
+Avodah Wealth Advisory - Layout Refined + Phase 4 Merged
+
+Base used:
+- Avodah_Wealth_Advisory_layout_refined_v2.zip
+
+Merged selectively from recent Phase 1-4 complete ZIP:
+- Added estate-tax-planning-guidance.html
+- Added government-loan-assistance.html
+- Added investment-planning-portfolio-review.html
+- Added sitemap entries for the three new pages
+- Added Netlify redirects for the three new pages
+- Added clean links to these pages from Services and Homepage focused-guidance sections
+- Added service anchor aliases so older/category links from Phase 3-4 resolve cleanly
+
+Preserved from layout-refined v2:
+- Latest approved homepage hero copy
+- Unified mobile navigation
+- Clean footer with Facebook/Messenger icon links
+- Netlify form structure and consent setup
+- GA4 and generate_lead thank-you tracking flow
+- netlify.toml security headers
+- robots.txt and sitemap structure
+- No AI assistant features
+- No AI Studio/Vite/Gemini scaffold files
+
+Deployment note:
+Upload the contents of this ZIP to Netlify, then test the contact form, thank-you redirect, GA4 generate_lead event, and the three new service pages.

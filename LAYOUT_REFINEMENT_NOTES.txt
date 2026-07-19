@@ -1,0 +1,23 @@
+Avodah Wealth Advisory layout refinement v2
+
+Base: Avodah_Wealth_Advisory_UX_refined.zip
+Reference: uploaded AI Studio example layout and screenshots
+
+Changes:
+- Updated homepage hero wording and CTA layout.
+- Removed Avodah Wealth Advisory from the hero eyebrow, leaving Protect. Grow. Prosper.
+- Restyled homepage hero with dark green geometric reference treatment.
+- Rebuilt homepage advisory services section into four clean pathway cards.
+- Updated services page title and description to Our Advisory Services.
+- Rebuilt services page into four vertical clean advisory categories plus full-width Next Step box.
+- Removed redundant form reassurance text so only one required consent checkbox remains.
+- Reworked contact page into a cleaner two-column consultation layout.
+- Cleaned footer text hierarchy and contact link presentation.
+
+Preserved:
+- GA4 tag G-HV9X54P7NT.
+- Netlify Forms structure and thank-you redirect.
+- generate_lead sessionStorage tracking flow.
+- netlify.toml security headers and redirects.
+- sitemap.xml and robots.txt.
+- No AI Studio scaffolding added.

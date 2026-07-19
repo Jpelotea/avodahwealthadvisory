@@ -1,0 +1,1 @@
+Applied final UI system patch: standardized typography, rebuilt global footer, fixed About Brand Promise visibility, and rewrote Contact page sidebar markup/CSS to remove overlap.

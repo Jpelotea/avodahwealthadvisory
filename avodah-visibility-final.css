@@ -1,0 +1,281 @@
+/*
+  Avodah final visibility guard
+  Loaded after styles.css as an unlayered stylesheet so it wins over older
+  global typography rules and CSS layer rules.
+*/
+
+:root {
+  --av-visible-white: #ffffff;
+  --av-visible-soft: #eef7eb;
+  --av-visible-red: #ff5a62;
+  --av-visible-green: #07381f;
+  --av-visible-button: #0f5a31;
+}
+
+body .hero,
+body .home-practice-section,
+body .advisory-pathways-home,
+body .home-checklist-card,
+body .landing-page:not(.services-page) .landing-hero-block,
+body .checklist-hero-refined,
+body .services-next-step-card,
+body .refined-next-step {
+  background-color: var(--av-visible-green) !important;
+  color: var(--av-visible-white) !important;
+}
+
+body .hero h1,
+body .hero h2,
+body .hero h3,
+body .hero #hero-title,
+body .home-practice-section h1,
+body .home-practice-section h2,
+body .home-practice-section h3,
+body .advisory-pathways-home h1,
+body .advisory-pathways-home h2,
+body .advisory-pathways-home h3,
+body .home-checklist-card h1,
+body .home-checklist-card h2,
+body .home-checklist-card h3,
+body .landing-page:not(.services-page) .landing-hero-block h1,
+body .landing-page:not(.services-page) .landing-hero-block h2,
+body .landing-page:not(.services-page) .landing-hero-block h3,
+body .checklist-hero-refined #page-title,
+body .services-next-step-card h2,
+body .refined-next-step h2 {
+  color: var(--av-visible-white) !important;
+  opacity: 1 !important;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.28) !important;
+}
+
+body .hero p,
+body .hero .hero-copy,
+body .home-practice-section p,
+body .home-practice-section p strong,
+body .advisory-pathways-home p,
+body .advisory-pathways-home li,
+body .advisory-pathways-home span,
+body .advisory-pathways-home strong,
+body .advisory-pathways-home .section-heading p,
+body .advisory-pathways-home .compact-section-heading p,
+body .advisory-pathways-home .advisory-pathway-card p,
+body .home-checklist-card p,
+body .landing-page:not(.services-page) .landing-hero-block p,
+body .landing-page:not(.services-page) .landing-hero-block .breadcrumbs,
+body .landing-page:not(.services-page) .landing-hero-block .breadcrumbs a,
+body .checklist-hero-refined p,
+body .services-next-step-card p,
+body .refined-next-step p {
+  color: var(--av-visible-soft) !important;
+  opacity: 1 !important;
+}
+
+body .hero .eyebrow,
+body .home-practice-section .section-kicker,
+body .advisory-pathways-home .section-kicker,
+body .home-checklist-card .section-kicker,
+body .landing-page:not(.services-page) .landing-hero-block .section-kicker,
+body .checklist-hero-refined .section-kicker,
+body .services-next-step-card .section-kicker,
+body .refined-next-step .section-kicker {
+  color: var(--av-visible-red) !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+body .advisory-pathways-home .advisory-pathway-card {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.26) !important;
+  color: var(--av-visible-white) !important;
+}
+
+body .advisory-pathways-home .service-number {
+  color: var(--av-visible-red) !important;
+  opacity: 1 !important;
+}
+
+body .hero .button-primary,
+body .home-checklist-card .button-primary,
+body .advisory-pathways-home .button-primary,
+body .services-next-step-card .button-primary,
+body .refined-next-step .button-primary {
+  background: var(--av-visible-button) !important;
+  border-color: var(--av-visible-button) !important;
+  color: var(--av-visible-white) !important;
+}
+
+body .hero .button-secondary,
+body .advisory-pathways-home .button-secondary {
+  background: #f5fbf2 !important;
+  border-color: #dbe8d6 !important;
+  color: var(--av-visible-green) !important;
+}
+
+body .about-hero-simple,
+body .services-page .landing-hero-block {
+  background: #ffffff !important;
+  color: var(--av-visible-green) !important;
+}
+
+body .about-hero-simple h1,
+body .services-page .landing-hero-block h1 {
+  color: var(--av-visible-green) !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+body .about-hero-simple p,
+body .services-page .landing-hero-block p,
+body .services-intro-panel p {
+  color: #4d5f54 !important;
+  opacity: 1 !important;
+}
+
+body .netlify-honeypot,
+body .honeypot,
+body p.hidden:has(input[name="bot-field"]),
+body label.honeypot {
+  position: absolute !important;
+  left: -10000px !important;
+  top: auto !important;
+  width: 1px !important;
+  height: 1px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  overflow: hidden !important;
+  clip: rect(0 0 0 0) !important;
+  clip-path: inset(50%) !important;
+  white-space: nowrap !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+body .netlify-honeypot *,
+body .honeypot *,
+body p.hidden:has(input[name="bot-field"]) * {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+}
+
+body .thank-you-page {
+  background: #ffffff !important;
+}
+
+body .thank-you-section {
+  display: flex !important;
+  align-items: center !important;
+  min-height: calc(100svh - 96px) !important;
+  padding: clamp(72px, 7vw, 108px) 0 clamp(56px, 7vw, 92px) !important;
+  background: #ffffff !important;
+  text-align: center !important;
+}
+
+body .thank-you-page .container,
+body .thank-you-page .narrow-container {
+  width: min(100% - 40px, 980px) !important;
+  max-width: 980px !important;
+  margin-inline: auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+}
+
+body .thank-you-section h1 {
+  max-width: 820px !important;
+  margin: 0 auto clamp(22px, 3vw, 30px) !important;
+  color: var(--av-visible-green) !important;
+  font-size: clamp(2.55rem, 6vw, 4.9rem) !important;
+  line-height: 1.06 !important;
+  letter-spacing: -0.045em !important;
+  text-align: center !important;
+}
+
+body .thank-you-section p {
+  max-width: 960px !important;
+  margin: 0 auto 18px !important;
+  color: #183f2a !important;
+  font-size: clamp(1rem, 1.35vw, 1.18rem) !important;
+  line-height: 1.7 !important;
+  text-align: center !important;
+}
+
+body .thank-you-section .thank-you-lead {
+  margin-bottom: 20px !important;
+  color: var(--av-visible-green) !important;
+  font-weight: 700 !important;
+}
+
+body .next-steps-box {
+  width: min(100%, 760px) !important;
+  max-width: 760px !important;
+  margin: clamp(32px, 4vw, 44px) auto clamp(24px, 3vw, 34px) !important;
+  padding: clamp(24px, 4vw, 36px) !important;
+  border: 1px solid rgba(16, 64, 32, 0.16) !important;
+  border-radius: 10px !important;
+  background: #fbfdf9 !important;
+  box-shadow: 0 18px 42px rgba(5, 45, 25, 0.08) !important;
+  text-align: left !important;
+}
+
+body .next-steps-box h2 {
+  margin: 0 0 16px !important;
+  color: var(--av-visible-green) !important;
+  font-size: clamp(1.75rem, 3.4vw, 2.55rem) !important;
+  line-height: 1.1 !important;
+  letter-spacing: -0.035em !important;
+  text-align: left !important;
+}
+
+body .next-steps-box p {
+  max-width: none !important;
+  margin: 0 0 18px !important;
+  color: #183f2a !important;
+  text-align: left !important;
+}
+
+body .next-steps-box ol {
+  display: grid !important;
+  gap: 8px !important;
+  margin: 0 !important;
+  padding-left: 1.35rem !important;
+  color: #183f2a !important;
+  font-size: clamp(0.98rem, 1.2vw, 1.08rem) !important;
+  line-height: 1.6 !important;
+}
+
+body .thank-you-actions {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: 12px !important;
+  margin-top: 4px !important;
+}
+
+body .thank-you-actions .button {
+  min-width: 210px !important;
+}
+
+@media (max-width: 640px) {
+  body .thank-you-section {
+    min-height: auto !important;
+    padding: 64px 0 52px !important;
+  }
+
+  body .thank-you-page .container,
+  body .thank-you-page .narrow-container {
+    width: min(100% - 32px, 520px) !important;
+  }
+
+  body .thank-you-section h1 {
+    font-size: clamp(2.1rem, 12vw, 3.2rem) !important;
+  }
+
+  body .thank-you-actions,
+  body .thank-you-actions .button {
+    width: 100% !important;
+  }
+}

@@ -1,0 +1,1 @@
+CSP fix applied. Added inline FAQPage JSON-LD hash to script-src and script-src-elem in netlify.toml. Hash: 'sha256-IpxLubtRJoPgPTgxtumf2NXIjhwuiEtU1pzmce+Q0Jo='

@@ -1,0 +1,6 @@
+Updated July 3, 2026
+
+- Added the Systematic Section Visibility Matrix to styles.css.
+- Added inline SVG scaling rules via .inline-icon.
+- Replaced raw glyph/icon snippets in home audience cards, action buttons, contact cards, FAQ toggles, and checklist accordions with inline SVGs that inherit currentColor.
+- Disabled legacy glyph-based pseudo-element icon content to satisfy the icon fallback rule.
