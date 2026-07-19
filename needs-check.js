@@ -11,6 +11,92 @@ const stepLabel = document.querySelector("#step-label");
 const progressPercent = document.querySelector("#progress-percent");
 let currentStep = 1;
 
+const ATTRIBUTION_STORAGE_KEY = "avodahAttribution";
+const ATTRIBUTION_FIELDS = [
+  "utm_source",
+  "utm_medium",
+  "utm_campaign",
+  "utm_content",
+  "utm_term",
+  "campaign_id",
+  "adset_id",
+  "ad_id",
+  "fbclid",
+  "landing_page",
+  "referrer",
+];
+const BRANCH_FIELD_NAMES = [
+  "protection_for",
+  "protection_priority",
+  "planning_goal",
+  "planning_stage",
+  "loan_type",
+  "loan_timing",
+  "business_need",
+  "business_stage",
+  "asset_to_protect",
+  "coverage_status",
+  "travel_need",
+  "travel_timing",
+];
+
+function sanitizeAttributionUrl(value) {
+  if (!value) return "";
+  try {
+    const url = new URL(value, window.location.origin);
+    return url.origin + url.pathname;
+  } catch {
+    return "";
+  }
+}
+
+function readAttribution() {
+  try {
+    return JSON.parse(sessionStorage.getItem(ATTRIBUTION_STORAGE_KEY) || "{}");
+  } catch {
+    return {};
+  }
+}
+
+function captureAttribution() {
+  const attribution = readAttribution();
+  const params = new URLSearchParams(window.location.search);
+
+  ATTRIBUTION_FIELDS.slice(0, 9).forEach((field) => {
+    const value = params.get(field);
+    if (value) attribution[field] = value.slice(0, 500);
+  });
+
+  if (!attribution.landing_page) {
+    attribution.landing_page = window.location.origin + window.location.pathname;
+  }
+  if (!attribution.referrer && document.referrer) {
+    attribution.referrer = sanitizeAttributionUrl(document.referrer);
+  }
+
+  try {
+    sessionStorage.setItem(ATTRIBUTION_STORAGE_KEY, JSON.stringify(attribution));
+  } catch {
+    // Some strict privacy settings can block browser storage.
+  }
+
+  return attribution;
+}
+
+function populateAttributionFields(attribution) {
+  ATTRIBUTION_FIELDS.forEach((field) => {
+    if (form.elements[field]) form.elements[field].value = attribution[field] || "";
+  });
+}
+
+function trackEvent(name, parameters) {
+  if (typeof window.gtag !== "function") return;
+  window.gtag("event", name, Object.assign({
+    transport_type: "beacon",
+  }, parameters || {}));
+}
+
+
 const paths = {
   protection: {label:"Protection Guidance",copy:"A conversation about life, health, critical illness, hospitalization, income, or family protection is the most relevant starting point.",link:"/life-insurance-guidance.html",questions:[{name:"protection_for",text:"Who or what would you most like to protect?",options:["Myself","My family or dependents","My income","My employees or key people"]},{name:"protection_priority",text:"Which concern is most important?",options:["Life protection","Critical illness or hospitalization","Income continuity","I am not sure yet"]}]},
   planning: {label:"Financial Planning & Portfolio Review",copy:"A needs-based financial planning conversation can help organize priorities, review current commitments, and explore suitable savings or investment paths.",link:"/investment-planning-portfolio-review.html",questions:[{name:"planning_goal",text:"What is your main planning goal?",options:["Build savings","Review investments","Prepare for retirement","Education or major future expense"]},{name:"planning_stage",text:"Where are you today?",options:["Starting from scratch","I have a plan but need guidance","I already invest and want a review","I am not sure"]}]},
@@ -22,11 +108,19 @@ const paths = {
 
 function selectedNeed(){return form.querySelector('input[name="primary_need"]:checked')?.value;}
 function renderBranch(){const path=paths[selectedNeed()];branchFields.innerHTML=path.questions.map((q,i)=>`<div class="branch-question"><span>${q.text}</span><div class="branch-options">${q.options.map(o=>`<label><input type="radio" name="branch_answer_${i+1}" data-target="${q.name}" value="${o}" required> <span>${o}</span></label>`).join("")}</div><p class="field-error" data-for="${q.name}"></p></div>`).join("");}
-function renderResult(){const need=selectedNeed(),path=paths[need];form.querySelectorAll('input[type="hidden"][name]').forEach(input=>{if(!["form-name","service_path","primary_need_label"].includes(input.name))input.value="";});branchFields.querySelectorAll("input:checked[data-target]").forEach(input=>{form.elements[input.dataset.target].value=input.value;});document.querySelector("#result-title").textContent=path.label;document.querySelector("#result-copy").textContent=path.copy;document.querySelector("#result-link").href=path.link;document.querySelector("#service-path").value=path.label;document.querySelector("#primary-need-label").value=form.querySelector('input[name="primary_need"]:checked').nextElementSibling.querySelector("strong").textContent;}
+function renderResult(){const need=selectedNeed(),path=paths[need];BRANCH_FIELD_NAMES.forEach(name=>{form.elements[name].value="";});branchFields.querySelectorAll("input:checked[data-target]").forEach(input=>{form.elements[input.dataset.target].value=input.value;});document.querySelector("#result-title").textContent=path.label;document.querySelector("#result-copy").textContent=path.copy;document.querySelector("#result-link").href=path.link;document.querySelector("#service-path").value=path.label;document.querySelector("#primary-need-label").value=form.querySelector('input[name="primary_need"]:checked').nextElementSibling.querySelector("strong").textContent;trackEvent("recommendation_viewed",{primary_need:need,service_path:path.label});}
 function showStep(number){currentStep=number;steps.forEach(s=>s.classList.toggle("is-active",Number(s.dataset.step)===number));const percent=Math.round(number/3*100);stepLabel.textContent=`Step ${number} of 3`;progressPercent.textContent=`${percent}%`;progressBar.style.width=`${percent}%`;progressTrack.setAttribute("aria-valuenow",String(number));backButton.hidden=number===1;nextButton.hidden=number===3;submitButton.hidden=number!==3;document.querySelector(".intake-card").scrollIntoView({behavior:"smooth",block:"start"});}
 function validateStep(){if(currentStep===1){const valid=Boolean(selectedNeed());document.querySelector("#primary-error").textContent=valid?"":"Please choose the need that best matches your situation.";return valid;}if(currentStep===2){let valid=true;branchFields.querySelectorAll(".branch-question").forEach(group=>{const input=group.querySelector("input"),checked=group.querySelector("input:checked"),error=group.querySelector(".field-error");error.textContent=checked?"":"Please select one option.";if(!checked){valid=false;input.focus();}});return valid;}return true;}
 nextButton.addEventListener("click",()=>{if(!validateStep())return;if(currentStep===1)renderBranch();if(currentStep===2)renderResult();showStep(currentStep+1);});
 backButton.addEventListener("click",()=>showStep(currentStep-1));
-form.addEventListener("change",event=>{if(event.target.name==="book_consultation"){const wantsContact=event.target.value==="Yes";contactFields.hidden=!wantsContact;contactFields.querySelectorAll("input,select").forEach(field=>{field.required=wantsContact&&["full_name","mobile_number","location","preferred_contact_method","consent"].includes(field.name);});}});
-form.addEventListener("submit",async event=>{event.preventDefault();const choice=form.querySelector('input[name="book_consultation"]:checked');const error=document.querySelector("#submit-error");if(!choice){error.textContent="Please tell us whether you would like a consultation.";return;}if(!form.checkValidity()){error.textContent="Please complete the required contact and consent fields.";form.reportValidity();return;}error.textContent="";submitButton.disabled=true;submitButton.textContent="Sending…";try{const data=new FormData(form);const response=await fetch("/",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:new URLSearchParams(data).toString()});if(!response.ok)throw new Error("Submission failed");form.hidden=true;document.querySelector(".progress-wrap").hidden=true;const confirmation=document.querySelector("#confirmation");confirmation.hidden=false;document.querySelector("#confirmation-title").textContent=choice.value==="Yes"?"Your consultation request has been received.":"Your needs check is complete.";document.querySelector("#confirmation-copy").textContent=choice.value==="Yes"?"Thank you. An Avodah representative can follow up using your selected contact method. Please allow reasonable time for a response.":"Thank you for using the Avodah needs check. You can explore the suggested service path now and contact Avodah whenever you are ready.";confirmation.focus();}catch{error.textContent="We could not submit your answers just now. Please try again in a moment.";}finally{submitButton.disabled=false;submitButton.textContent="Finish";}});
+form.addEventListener("change",event=>{if(event.target.name==="primary_need"){trackEvent("need_selected",{primary_need:event.target.value});}if(event.target.name==="book_consultation"){const wantsContact=event.target.value==="Yes";contactFields.hidden=!wantsContact;contactFields.querySelectorAll("input,select").forEach(field=>{field.required=wantsContact&&["full_name","mobile_number","location","preferred_contact_method","consent"].includes(field.name);});if(wantsContact){trackEvent("consultation_requested",{primary_need:selectedNeed(),service_path:document.querySelector("#service-path").value});}}});
+form.addEventListener("submit",async event=>{event.preventDefault();const choice=form.querySelector('input[name="book_consultation"]:checked');const error=document.querySelector("#submit-error");if(!choice){error.textContent="Please tell us whether you would like a consultation.";return;}if(!form.checkValidity()){error.textContent="Please complete the required contact and consent fields.";form.reportValidity();return;}error.textContent="";submitButton.disabled=true;submitButton.textContent="Sending…";try{const data=new FormData(form);const response=await fetch("/",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:new URLSearchParams(data).toString()});if(!response.ok)throw new Error("Submission failed");const eventParameters={primary_need:selectedNeed(),service_path:document.querySelector("#service-path").value,consultation_requested:choice.value==="Yes"?"yes":"no"};trackEvent("form_submitted",eventParameters);if(choice.value==="Yes"){trackEvent("generate_lead",eventParameters);}form.hidden=true;document.querySelector(".progress-wrap").hidden=true;const confirmation=document.querySelector("#confirmation");confirmation.hidden=false;document.querySelector("#confirmation-title").textContent=choice.value==="Yes"?"Your consultation request has been received.":"Your needs check is complete.";document.querySelector("#confirmation-copy").textContent=choice.value==="Yes"?"Thank you. An Avodah representative can follow up using your selected contact method. Please allow reasonable time for a response.":"Thank you for using the Avodah needs check. You can explore the suggested service path now and contact Avodah whenever you are ready.";confirmation.focus();}catch{error.textContent="We could not submit your answers just now. Please try again in a moment.";}finally{submitButton.disabled=false;submitButton.textContent="Finish";}});
 if(new URLSearchParams(location.search).get("submitted")==="true"){history.replaceState({},"",location.pathname);}
+
+
+const attribution = captureAttribution();
+populateAttributionFields(attribution);
+trackEvent("needs_check_start", {
+  landing_page: attribution.landing_page || window.location.pathname,
+  traffic_source: attribution.utm_source || "direct",
+});
