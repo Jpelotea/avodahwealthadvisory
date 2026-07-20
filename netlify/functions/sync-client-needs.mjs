@@ -167,10 +167,10 @@ export default {
       body: JSON.stringify({ secret: webhookSecret, row }),
     });
 
-    const result = await response.json().catch(() => ({
+   const result = await response.json().catch(() => ({
   ok: false,
   code: "INVALID_RESPONSE",
-  error: "Apps Script returned an invalid JSON response",
+  error: "Apps Script returned invalid JSON",
 }));
 
 if (!response.ok || !result.ok) {
@@ -178,7 +178,6 @@ if (!response.ok || !result.ok) {
     "Google Sheets sync response:",
     JSON.stringify({
       http_status: response.status,
-      ok: result.ok,
       code: result.code || "UNKNOWN",
       error: result.error || "Unknown Apps Script error",
     })
