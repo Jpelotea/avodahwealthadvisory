@@ -27,7 +27,7 @@
     };
 
     const loadAvailability=async()=>{
-      openButton.disabled=true;openButton.textContent="Checking availability…";panel.hidden=false;status.textContent="Checking Ma’am Christine’s available times…";fallback.hidden=true;
+      openButton.disabled=true;openButton.textContent="Checking availability…";panel.hidden=false;status.textContent="Checking representative's available times…";fallback.hidden=true;
       try{
         const response=await fetch("/api/booking-slots",{headers:{Accept:"application/json"},cache:"no-store"});const result=await response.json();
         if(!response.ok||!result.ok)throw new Error("Availability unavailable");
