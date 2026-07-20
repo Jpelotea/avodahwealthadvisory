@@ -167,11 +167,29 @@ export default {
       body: JSON.stringify({ secret: webhookSecret, row }),
     });
 
-    const result = await response.json().catch(() => ({ ok: false }));
+    const result = await response.json().catch(() => ({
+  ok: false,
+  code: "INVALID_RESPONSE",
+  error: "Apps Script returned an invalid JSON response",
+}));
 
-    if (!response.ok || !result.ok) {
-      throw new Error(`Google Sheets sync failed with HTTP ${response.status}`);
-    }
+if (!response.ok || !result.ok) {
+  console.error(
+    "Google Sheets sync response:",
+    JSON.stringify({
+      http_status: response.status,
+      ok: result.ok,
+      code: result.code || "UNKNOWN",
+      error: result.error || "Unknown Apps Script error",
+    })
+  );
+
+  throw new Error(
+    `Google Sheets sync failed: ${result.code || "UNKNOWN"} - ${
+      result.error || `HTTP ${response.status}`
+    }`
+  );
+}
 
     console.log(`Synced Avodah website lead ${submissionId} from ${formName || "verified form"}.`);
   },
