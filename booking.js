@@ -39,18 +39,91 @@
       finally{openButton.hidden=true;}
     };
 
-    const confirmBooking=async()=>{
-      if(!selectedStart)return;confirmButton.disabled=true;confirmButton.textContent="Booking…";status.textContent="Reserving your selected time…";
-      try{
-        const response=await fetch("/api/book-consultation",{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({lead_id:leadId,start:selectedStart})});const result=await response.json();
-        if(!response.ok||!result.ok){if(result.code==="SLOT_UNAVAILABLE"){status.textContent="That time was just taken. Please refresh the available times.";openButton.hidden=false;openButton.disabled=false;openButton.textContent="Refresh Available Times";panel.hidden=true;return;}throw new Error("Booking failed");}
-        panel.hidden=true;success.hidden=false;success.innerHTML="<h3>Consultation booked</h3><p><strong>"+formatSlot(result.start)+"</strong></p><p>A calendar invitation has been sent when an email address was provided.</p>";
-        if(result.meet_link){const link=document.createElement("a");link.className="button button-primary";link.href=result.meet_link;link.target="_blank";link.rel="noopener";link.textContent="Open Google Meet";success.appendChild(link);}
-        success.focus();clearLead();
-        if(typeof window.gtag==="function"){window.gtag("event","appointment_booked",{send_to:"G-HV9X54P7NT",booking_owner:"maam_christine",meeting_type:"google_meet"});}
-      }catch{status.textContent="We could not reserve the time. Your request remains active for manual follow-up.";fallback.hidden=false;confirmButton.disabled=false;}
-      finally{confirmButton.textContent="Confirm Appointment";}
-    };
+    const confirmBooking = async () => {
+  if (!selectedStart) return;
+
+  confirmButton.disabled = true;
+  confirmButton.textContent = "Booking…";
+  status.textContent = "Reserving your selected time…";
+
+  try {
+    const response = await fetch("/api/book-consultation", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json"
+      },
+      body: JSON.stringify({
+        lead_id: leadId,
+        start: selectedStart
+      })
+    });
+
+    const result = await response.json();
+
+    if (!response.ok || !result.ok) {
+      if (result.code === "SLOT_UNAVAILABLE") {
+        status.textContent =
+          "That time was just taken. Please refresh the available times.";
+
+        openButton.hidden = false;
+        openButton.disabled = false;
+        openButton.textContent = "Refresh Available Times";
+        panel.hidden = true;
+
+        return;
+      }
+
+      throw new Error("Booking failed");
+    }
+
+    // Remove any previous error or manual follow-up message.
+    fallback.hidden = true;
+    status.textContent = "";
+
+    // Hide booking controls after successful booking.
+    panel.hidden = true;
+    openButton.hidden = true;
+
+    // Display successful booking details.
+    success.hidden = false;
+    success.innerHTML =
+      "<h3>Consultation booked</h3>" +
+      "<p><strong>" +
+      formatSlot(result.start) +
+      "</strong></p>" +
+      "<p>A calendar invitation has been sent when an email address was provided.</p>";
+
+    if (result.meet_link) {
+      const link = document.createElement("a");
+      link.className = "button button-primary";
+      link.href = result.meet_link;
+      link.target = "_blank";
+      link.rel = "noopener";
+      link.textContent = "Open Google Meet";
+      success.appendChild(link);
+    }
+
+    success.focus();
+    clearLead();
+
+    if (typeof window.gtag === "function") {
+      window.gtag("event", "appointment_booked", {
+        send_to: "G-HV9X54P7NT",
+        booking_owner: "maam_christine",
+        meeting_type: "google_meet"
+      });
+    }
+  } catch {
+    status.textContent =
+      "We could not reserve the time. Your request remains active for manual follow-up.";
+
+    fallback.hidden = false;
+    confirmButton.disabled = false;
+  } finally {
+    confirmButton.textContent = "Confirm Appointment";
+  }
+};
     openButton.addEventListener("click",loadAvailability);dateSelect.addEventListener("change",renderTimes);confirmButton.addEventListener("click",confirmBooking);
   };
 
