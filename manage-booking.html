@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Manage Appointment | Avodah Wealth Advisory</title>
+  <link rel="icon" href="/avodah-logo-mark.png">
+  <link rel="stylesheet" href="/manage-booking.css?v=20260721-v3">
+</head>
+<body>
+  <main class="manage-shell">
+    <a class="brand" href="/">
+      <img src="/avodah-logo.png" alt="Avodah Wealth Advisory">
+    </a>
+
+    <section class="manage-card" aria-live="polite">
+      <p class="eyebrow">Appointment management</p>
+
+      <h1>Manage your consultation</h1>
+
+      <p id="manage-status">
+        Loading your appointment…
+      </p>
+
+      <div id="booking-details" hidden>
+        <p>
+          <strong id="booking-date"></strong>
+        </p>
+
+        <p id="booking-state"></p>
+
+        <p>
+          <a
+            id="meet-link"
+            class="button primary"
+            target="_blank"
+            rel="noopener"
+            hidden
+          >
+            Open Google Meet
+          </a>
+        </p>
+      </div>
+
+      <section id="reschedule-section" hidden>
+        <h2>Reschedule</h2>
+
+        <label for="manage-date">
+          Available date
+        </label>
+
+        <select id="manage-date"></select>
+
+        <div
+          id="manage-times"
+          class="time-grid"
+        ></div>
+
+        <p id="manage-selection"></p>
+
+        <button
+          id="reschedule-button"
+          type="button"
+          disabled
+        >
+          Confirm new schedule
+        </button>
+      </section>
+
+      <section id="cancel-section" hidden>
+        <h2>Cancel appointment</h2>
+
+        <p>
+          Cancel only when the consultation will no longer continue.
+        </p>
+
+        <button
+          id="cancel-button"
+          class="danger"
+          type="button"
+        >
+          Cancel appointment
+        </button>
+      </section>
+
+      <p>
+        <a href="/">
+          Back to Avodah Wealth Advisory
+        </a>
+      </p>
+    </section>
+  </main>
+
+  <script src="/manage-booking.js?v=20260721-v3"></script>
+</body>
+</html>
