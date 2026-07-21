@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-HV9X54P7NT"></script>
   <script>
@@ -11,43 +12,103 @@
     gtag("js", new Date());
     gtag("config", "G-HV9X54P7NT");
   </script>
+
   <title>Find the Right Service | Avodah Wealth Advisory</title>
-  <meta name="description" content="Answer a few simple questions to find the Avodah service path that fits your current financial need.">
+  <meta
+    name="description"
+    content="Answer a few simple questions to find the Avodah service path that fits your current financial need."
+  >
   <meta name="robots" content="index,follow">
+
   <link rel="icon" href="/avodah-logo-mark.png">
   <link rel="stylesheet" href="/needs-check.css?v=20260720-1">
-<link href="/booking.css?v=20260720-booking-v1" rel="stylesheet">
+  <link href="/booking.css?v=20260721-booking-v2" rel="stylesheet">
 </head>
+
 <body>
   <a class="skip-link" href="#intake">Skip to questions</a>
+
   <header class="intake-header">
     <a class="intake-brand" href="/" aria-label="Avodah Wealth Advisory home">
       <img src="/avodah-logo.png" alt="Avodah Wealth Advisory">
     </a>
+
     <a class="header-link" href="/">Back to website</a>
   </header>
 
   <main id="intake" class="intake-shell">
     <section class="intro" aria-labelledby="page-title">
       <p class="eyebrow">Free financial needs check</p>
-      <h1 id="page-title">Let’s find the right starting point for you.</h1>
-      <p>Answer a few focused questions. We’ll show a relevant service path and, if you choose, help you request a free consultation. No account or sign-in required.</p>
+
+      <h1 id="page-title">
+        Let’s find the right starting point for you.
+      </h1>
+
+      <p>
+        Answer a few focused questions. We’ll show a relevant service path and,
+        if you choose, help you request a free consultation. No account or
+        sign-in required.
+      </p>
+
       <div class="trust-row" aria-label="Privacy and service information">
-        <span>About 2 minutes</span><span>No sign-in</span><span>You control what you share</span>
+        <span>About 2 minutes</span>
+        <span>No sign-in</span>
+        <span>You control what you share</span>
       </div>
     </section>
 
     <section class="intake-card" aria-live="polite">
       <div class="progress-wrap">
-        <div class="progress-meta"><span id="step-label">Step 1 of 3</span><span id="progress-percent">33%</span></div>
-        <div class="progress-track" role="progressbar" aria-valuemin="1" aria-valuemax="3" aria-valuenow="1" aria-labelledby="step-label"><span id="progress-bar"></span></div>
+        <div class="progress-meta">
+          <span id="step-label">Step 1 of 3</span>
+          <span id="progress-percent">33%</span>
+        </div>
+
+        <div
+          class="progress-track"
+          role="progressbar"
+          aria-valuemin="1"
+          aria-valuemax="3"
+          aria-valuenow="1"
+          aria-labelledby="step-label"
+        >
+          <span id="progress-bar"></span>
+        </div>
       </div>
 
-      <form name="client-needs-check" method="POST" action="/needs-check.html?submitted=true" data-netlify="true" data-netlify-honeypot="bot-field" id="needs-form" novalidate>
-        <input type="hidden" name="form-name" value="client-needs-check">
-        <input type="hidden" name="lead_submission_id" value="">
-        <input type="hidden" name="service_path" id="service-path">
-        <input type="hidden" name="primary_need_label" id="primary-need-label">
+      <form
+        name="client-needs-check"
+        method="POST"
+        action="/needs-check.html?submitted=true"
+        data-netlify="true"
+        data-netlify-honeypot="bot-field"
+        id="needs-form"
+        novalidate
+      >
+        <input
+          type="hidden"
+          name="form-name"
+          value="client-needs-check"
+        >
+
+        <input
+          type="hidden"
+          name="lead_submission_id"
+          value=""
+        >
+
+        <input
+          type="hidden"
+          name="service_path"
+          id="service-path"
+        >
+
+        <input
+          type="hidden"
+          name="primary_need_label"
+          id="primary-need-label"
+        >
+
         <input type="hidden" name="protection_for">
         <input type="hidden" name="protection_priority">
         <input type="hidden" name="planning_goal">
@@ -60,107 +121,510 @@
         <input type="hidden" name="coverage_status">
         <input type="hidden" name="travel_need">
         <input type="hidden" name="travel_timing">
+
         <input type="hidden" name="utm_source">
         <input type="hidden" name="utm_medium">
         <input type="hidden" name="utm_campaign">
         <input type="hidden" name="utm_content">
         <input type="hidden" name="utm_term">
+
         <input type="hidden" name="campaign_id">
         <input type="hidden" name="adset_id">
         <input type="hidden" name="ad_id">
         <input type="hidden" name="fbclid">
+
         <input type="hidden" name="landing_page">
         <input type="hidden" name="referrer">
-        <p class="honeypot" aria-hidden="true"><label>Leave this blank <input name="bot-field" tabindex="-1" autocomplete="off"></label></p>
 
+        <p class="honeypot" aria-hidden="true">
+          <label>
+            Leave this blank
+            <input
+              name="bot-field"
+              tabindex="-1"
+              autocomplete="off"
+            >
+          </label>
+        </p>
+
+        <!-- STEP 1 -->
         <fieldset class="step is-active" data-step="1">
-          <legend>What would you most like help with right now?</legend>
-          <p class="step-help">Choose the one that feels most urgent. You can mention other needs later.</p>
+          <legend>
+            What would you most like help with right now?
+          </legend>
+
+          <p class="step-help">
+            Choose the one that feels most urgent. You can mention other needs
+            later.
+          </p>
+
           <div class="choice-grid primary-choices">
-            <label class="choice"><input type="radio" name="primary_need" value="protection" required><span><strong>Protect my family, health, or income</strong><small>Life, health, critical illness, or family protection</small></span></label>
-            <label class="choice"><input type="radio" name="primary_need" value="planning" required><span><strong>Organize, grow, or review my finances</strong><small>Financial planning, investments, or portfolio review</small></span></label>
-            <label class="choice"><input type="radio" name="primary_need" value="loan" required><span><strong>Prepare for a loan application</strong><small>Personal, business, auto, OFW, seafarer, or government loan</small></span></label>
-            <label class="choice"><input type="radio" name="primary_need" value="business" required><span><strong>Protect my business or plan my legacy</strong><small>Continuity, employee protection, estate, or succession planning</small></span></label>
-            <label class="choice"><input type="radio" name="primary_need" value="nonlife" required><span><strong>Protect a vehicle, property, or trip</strong><small>Car, property, business, travel, or general insurance</small></span></label>
-            <label class="choice"><input type="radio" name="primary_need" value="travel" required><span><strong>Plan travel, ticketing, or visa support</strong><small>Flights, visa guidance, passport appointments, or tours</small></span></label>
+            <label class="choice">
+              <input
+                type="radio"
+                name="primary_need"
+                value="protection"
+                required
+              >
+              <span>
+                <strong>Protect my family, health, or income</strong>
+                <small>
+                  Life, health, critical illness, or family protection
+                </small>
+              </span>
+            </label>
+
+            <label class="choice">
+              <input
+                type="radio"
+                name="primary_need"
+                value="planning"
+                required
+              >
+              <span>
+                <strong>Organize, grow, or review my finances</strong>
+                <small>
+                  Financial planning, investments, or portfolio review
+                </small>
+              </span>
+            </label>
+
+            <label class="choice">
+              <input
+                type="radio"
+                name="primary_need"
+                value="loan"
+                required
+              >
+              <span>
+                <strong>Prepare for a loan application</strong>
+                <small>
+                  Personal, business, auto, OFW, seafarer, or government loan
+                </small>
+              </span>
+            </label>
+
+            <label class="choice">
+              <input
+                type="radio"
+                name="primary_need"
+                value="business"
+                required
+              >
+              <span>
+                <strong>Protect my business or plan my legacy</strong>
+                <small>
+                  Continuity, employee protection, estate, or succession
+                  planning
+                </small>
+              </span>
+            </label>
+
+            <label class="choice">
+              <input
+                type="radio"
+                name="primary_need"
+                value="nonlife"
+                required
+              >
+              <span>
+                <strong>Protect a vehicle, property, or trip</strong>
+                <small>
+                  Car, property, business, travel, or general insurance
+                </small>
+              </span>
+            </label>
+
+            <label class="choice">
+              <input
+                type="radio"
+                name="primary_need"
+                value="travel"
+                required
+              >
+              <span>
+                <strong>Plan travel, ticketing, or visa support</strong>
+                <small>
+                  Flights, visa guidance, passport appointments, or tours
+                </small>
+              </span>
+            </label>
           </div>
+
           <p class="field-error" id="primary-error"></p>
         </fieldset>
 
+        <!-- STEP 2 -->
         <fieldset class="step" data-step="2">
-          <legend id="followup-title">A little more about your need</legend>
-          <p class="step-help" id="followup-help">We’ll only ask questions relevant to your selection.</p>
+          <legend id="followup-title">
+            A little more about your need
+          </legend>
+
+          <p class="step-help" id="followup-help">
+            We’ll only ask questions relevant to your selection.
+          </p>
+
           <div id="branch-fields"></div>
         </fieldset>
 
-        <section class="step" data-step="3" aria-labelledby="result-title">
-          <p class="result-kicker">Your suggested starting point</p>
+        <!-- STEP 3 -->
+        <section
+          class="step"
+          data-step="3"
+          aria-labelledby="result-title"
+        >
+          <p class="result-kicker">
+            Your suggested starting point
+          </p>
+
           <div class="recommendation">
-            <span class="recommendation-icon" aria-hidden="true">✓</span>
-            <div><h2 id="result-title"></h2><p id="result-copy"></p><a id="result-link" href="/services.html">Learn about this service path</a></div>
+            <span
+              class="recommendation-icon"
+              aria-hidden="true"
+            >
+              ✓
+            </span>
+
+            <div>
+              <h2 id="result-title"></h2>
+              <p id="result-copy"></p>
+
+              <a
+                id="result-link"
+                href="/services.html"
+              >
+                Learn about this service path
+              </a>
+            </div>
           </div>
 
           <div class="booking-choice">
-            <h3>Would you like Avodah to contact you for a free consultation?</h3>
+            <h3>
+              Would you like Avodah to contact you for a free consultation?
+            </h3>
+
             <div class="inline-choices">
-              <label><input type="radio" name="book_consultation" value="Yes" required> Yes, contact me</label>
-              <label><input type="radio" name="book_consultation" value="Not now" required> Not right now</label>
+              <label>
+                <input
+                  type="radio"
+                  name="book_consultation"
+                  value="Yes"
+                  required
+                >
+                Yes, contact me
+              </label>
+
+              <label>
+                <input
+                  type="radio"
+                  name="book_consultation"
+                  value="Not now"
+                  required
+                >
+                Not right now
+              </label>
             </div>
           </div>
 
           <div id="contact-fields" hidden>
             <div class="form-grid">
-              <label>Full name *<input name="full_name" autocomplete="name" maxlength="100"></label>
-              <label>Mobile number *<input name="mobile_number" type="tel" autocomplete="tel" inputmode="tel" maxlength="30"></label>
-              <label>Email address<input name="email" type="email" autocomplete="email" maxlength="120"></label>
-              <label>City / Province *<input name="location" autocomplete="address-level2" maxlength="120"></label>
-              <label>Preferred contact method *<select name="preferred_contact_method"><option value="">Select one</option><option>Phone call</option><option>Text message</option><option>Messenger</option><option>Email</option><option>Video call</option><option>In-person meeting</option></select></label>
-              <label>Preferred day / time<input name="preferred_schedule" placeholder="e.g. Weekdays after 6 PM" maxlength="100"></label>
+              <label>
+                Full name *
+                <input
+                  name="full_name"
+                  autocomplete="name"
+                  maxlength="100"
+                >
+              </label>
+
+              <label>
+                Mobile number *
+                <input
+                  name="mobile_number"
+                  type="tel"
+                  autocomplete="tel"
+                  inputmode="tel"
+                  maxlength="30"
+                >
+              </label>
+
+              <label>
+                Email address
+                <input
+                  name="email"
+                  type="email"
+                  autocomplete="email"
+                  maxlength="120"
+                >
+              </label>
+
+              <label>
+                City / Province *
+                <input
+                  name="location"
+                  autocomplete="address-level2"
+                  maxlength="120"
+                >
+              </label>
+
+              <label>
+                Preferred contact method *
+                <select name="preferred_contact_method">
+                  <option value="">Select one</option>
+                  <option>Phone call</option>
+                  <option>Text message</option>
+                  <option>Messenger</option>
+                  <option>Email</option>
+                  <option>Video call</option>
+                  <option>In-person meeting</option>
+                </select>
+              </label>
+
+              <label>
+                Preferred day / time
+                <input
+                  name="preferred_schedule"
+                  placeholder="e.g. Weekdays after 6 PM"
+                  maxlength="100"
+                >
+              </label>
             </div>
-            <label class="notes-label">Anything else we should know?<textarea name="additional_notes" rows="3" maxlength="800" placeholder="Optional—please do not include passwords, account numbers, government ID numbers, or medical records."></textarea></label>
-            <label class="consent"><input type="checkbox" name="consent" value="Yes"><span>I agree that Avodah Wealth Advisory may use these details to respond to my inquiry and coordinate a consultation. I understand that Avodah provides guidance and assistance, and does not guarantee approval, returns, pricing, or product availability. See the <a href="/privacy-policy.html" target="_blank" rel="noopener">Privacy Policy</a>.</span></label>
+
+            <label class="notes-label">
+              Anything else we should know?
+              <textarea
+                name="additional_notes"
+                rows="3"
+                maxlength="800"
+                placeholder="Optional—please do not include passwords, account numbers, government ID numbers, or medical records."
+              ></textarea>
+            </label>
+
+            <label class="consent">
+              <input
+                type="checkbox"
+                name="consent"
+                value="Yes"
+              >
+
+              <span>
+                I agree that Avodah Wealth Advisory may use these details to
+                respond to my inquiry and coordinate a consultation. I
+                understand that Avodah provides guidance and assistance, and
+                does not guarantee approval, returns, pricing, or product
+                availability. See the
+                <a
+                  href="/privacy-policy.html"
+                  target="_blank"
+                  rel="noopener"
+                >
+                  Privacy Policy
+                </a>.
+              </span>
+            </label>
           </div>
-          <p class="field-error" id="submit-error"></p>
+
+          <p
+            class="field-error"
+            id="submit-error"
+          ></p>
         </section>
 
         <div class="form-actions">
-          <button class="button button-secondary" type="button" id="back-button" hidden>Back</button>
-          <button class="button button-primary" type="button" id="next-button">Continue</button>
-          <button class="button button-primary" type="submit" id="submit-button" hidden>Finish</button>
+          <button
+            class="button button-secondary"
+            type="button"
+            id="back-button"
+            hidden
+          >
+            Back
+          </button>
+
+          <button
+            class="button button-primary"
+            type="button"
+            id="next-button"
+          >
+            Continue
+          </button>
+
+          <button
+            class="button button-primary"
+            type="submit"
+            id="submit-button"
+            hidden
+          >
+            Finish
+          </button>
         </div>
       </form>
 
-      <section class="confirmation" id="confirmation" hidden tabindex="-1">
-        <div class="confirmation-mark" aria-hidden="true">✓</div>
-        <p class="eyebrow">Needs check complete</p>
-        <h2 id="confirmation-title">Thank you.</h2>
+      <!-- CONFIRMATION -->
+      <section
+        class="confirmation"
+        id="confirmation"
+        hidden
+        tabindex="-1"
+      >
+        <div
+          class="confirmation-mark"
+          aria-hidden="true"
+        >
+          ✓
+        </div>
+
+        <p class="eyebrow">
+          Needs check complete
+        </p>
+
+        <h2 id="confirmation-title">
+          Thank you.
+        </h2>
+
         <p id="confirmation-copy"></p>
-        <section class="booking-widget" data-booking-widget hidden aria-labelledby="needs-booking-title">
-  <p class="section-kicker">Optional next step</p>
-  <h2 id="needs-booking-title">Choose a Consultation Schedule</h2>
-  <p>Select an available 30-minute Google Meet consultation with our representative. No account or sign-in is required.</p>
-  <button class="button button-primary" type="button" data-booking-open>View Available Times</button>
-  <div class="booking-panel" data-booking-panel hidden>
-    <p class="booking-status" data-booking-status aria-live="polite"></p>
-    <label class="booking-date-label">Available date
-      <select data-booking-date aria-label="Available consultation date"></select>
-    </label>
-    <fieldset class="booking-time-fieldset"><legend>Available time</legend><div class="booking-time-grid" data-booking-times></div></fieldset>
-    <p class="booking-selection" data-booking-selection aria-live="polite"></p>
-    <button class="button button-primary" type="button" data-booking-confirm disabled>Confirm Appointment</button>
-  </div>
-  <div class="booking-success" data-booking-success hidden tabindex="-1"></div>
-  <p class="booking-fallback" data-booking-fallback hidden>Your consultation request remains active for manual follow-up. Avodah will contact you using your preferred method.</p>
-</section>
-        <div class="confirmation-actions"><a class="button button-primary" href="/services.html">Explore Avodah Services</a><a class="button button-secondary" href="/">Return Home</a></div>
-        <p class="privacy-note">Please do not send passwords, account numbers, complete government ID numbers, or medical records through public messaging channels.</p>
+
+        <!-- BOOKING WIDGET -->
+        <section
+          class="booking-widget"
+          data-booking-widget
+          hidden
+          aria-labelledby="needs-booking-title"
+        >
+          <p class="section-kicker">
+            Optional next step
+          </p>
+
+          <h2 id="needs-booking-title">
+            Choose a Consultation Schedule
+          </h2>
+
+          <p>
+            Select an available 30-minute Google Meet consultation with our
+            representative. No account or sign-in is required.
+          </p>
+
+          <button
+            class="button button-primary"
+            type="button"
+            data-booking-open
+          >
+            View Available Times
+          </button>
+
+          <div
+            class="booking-panel"
+            data-booking-panel
+            hidden
+          >
+            <p
+              class="booking-status"
+              data-booking-status
+              aria-live="polite"
+            ></p>
+
+            <label class="booking-date-label">
+              Available date
+
+              <select
+                data-booking-date
+                aria-label="Available consultation date"
+              ></select>
+            </label>
+
+            <fieldset class="booking-time-fieldset">
+              <legend>
+                Available time
+              </legend>
+
+              <div
+                class="booking-time-grid"
+                data-booking-times
+              ></div>
+            </fieldset>
+
+            <p
+              class="booking-selection"
+              data-booking-selection
+              aria-live="polite"
+            ></p>
+
+            <button
+              class="button button-primary"
+              type="button"
+              data-booking-confirm
+              disabled
+            >
+              Confirm Appointment
+            </button>
+          </div>
+
+          <div
+            class="booking-success"
+            data-booking-success
+            hidden
+            tabindex="-1"
+          ></div>
+
+          <p
+            class="booking-fallback"
+            data-booking-fallback
+            hidden
+          >
+            Your consultation request remains active for manual follow-up.
+            Avodah will contact you using your preferred method.
+          </p>
+        </section>
+
+        <div class="confirmation-actions">
+          <a
+            class="button button-primary"
+            href="/services.html"
+          >
+            Explore Avodah Services
+          </a>
+
+          <a
+            class="button button-secondary"
+            href="/"
+          >
+            Return Home
+          </a>
+        </div>
+
+        <p class="privacy-note">
+          Please do not send passwords, account numbers, complete government ID
+          numbers, or medical records through public messaging channels.
+        </p>
       </section>
     </section>
 
-    <aside class="privacy-strip"><strong>Privacy first:</strong> Your answers stay in this form until you submit. Contact details are optional unless you request a consultation. Avodah uses submitted information only for inquiry follow-up and service coordination.</aside>
+    <aside class="privacy-strip">
+      <strong>Privacy first:</strong>
+      Your answers stay in this form until you submit. Contact details are
+      optional unless you request a consultation. Avodah uses submitted
+      information only for inquiry follow-up and service coordination.
+    </aside>
   </main>
-  <footer><span>© 2026 Avodah Wealth Advisory</span><nav aria-label="Legal"><a href="/privacy-policy.html">Privacy Policy</a><a href="/terms.html">Terms</a><a href="/disclaimer.html">Disclaimer</a></nav></footer>
-  <script src="/booking.js?v=20260720-booking-v1"></script>
+
+  <footer>
+    <span>© 2026 Avodah Wealth Advisory</span>
+
+    <nav aria-label="Legal">
+      <a href="/privacy-policy.html">
+        Privacy Policy
+      </a>
+
+      <a href="/terms.html">
+        Terms
+      </a>
+
+      <a href="/disclaimer.html">
+        Disclaimer
+      </a>
+    </nav>
+  </footer>
+
+  <script src="/booking.js?v=20260721-booking-v2"></script>
   <script src="/needs-check.js?v=20260720-booking-v1"></script>
 </body>
 </html>
