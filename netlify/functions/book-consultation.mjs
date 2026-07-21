@@ -10,61 +10,43 @@ const json = (body, status = 200) =>
     },
   });
 
+const appsScriptStatus = (result, fallback = 503) => {
+  const value = Number(result && result.http_status);
+  return Number.isInteger(value) && value >= 400 && value <= 599 ? value : fallback;
+};
+
 export default async (request) => {
   if (request.method !== "POST") {
-    return json(
-      {
-        ok: false,
-        error: "Method not allowed",
-      },
-      405
-    );
+    return json({ ok: false, code: "METHOD_NOT_ALLOWED", error: "Method not allowed" }, 405);
   }
 
   const webhookUrl = Netlify.env.get("GOOGLE_SHEETS_WEBHOOK_URL");
   const webhookSecret = Netlify.env.get("GOOGLE_SHEETS_WEBHOOK_SECRET");
 
   if (!webhookUrl || !webhookSecret) {
-    return json(
-      {
-        ok: false,
-        error: "Booking service is not configured",
-      },
-      503
-    );
+    return json({ ok: false, code: "SERVICE_NOT_CONFIGURED", error: "Booking service is not configured" }, 503);
   }
 
   try {
     const data = await request.json();
-
     const leadId = String(data.lead_id || "").trim();
     const start = String(data.start || "").trim();
+    const idempotencyKey = String(data.idempotency_key || crypto.randomUUID()).trim();
     const startDate = new Date(start);
 
-    if (
-      !UUID_PATTERN.test(leadId) ||
-      !start ||
-      Number.isNaN(startDate.getTime())
-    ) {
-      return json(
-        {
-          ok: false,
-          error: "Invalid booking request",
-        },
-        400
-      );
+    if (!UUID_PATTERN.test(leadId) || !start || Number.isNaN(startDate.getTime())) {
+      return json({ ok: false, code: "INVALID_PAYLOAD", error: "Invalid booking request" }, 400);
     }
 
     const response = await fetch(webhookUrl, {
       method: "POST",
-      headers: {
-        "content-type": "application/json",
-      },
+      headers: { "content-type": "application/json" },
       body: JSON.stringify({
         secret: webhookSecret,
         action: "book",
         lead_id: leadId,
         start,
+        idempotency_key: idempotencyKey,
       }),
     });
 
@@ -74,51 +56,38 @@ export default async (request) => {
       error: "Apps Script returned invalid JSON",
     }));
 
-    if (!response.ok || !result.ok) {
-      const conflict = result.code === "SLOT_UNAVAILABLE";
-
-      console.error(
-        "Booking Apps Script response:",
-        JSON.stringify({
-          http_status: response.status,
-          code: result.code || "BOOKING_FAILED",
-          error: result.error || "Unknown booking error",
-          diagnostic: result.diagnostic || "",
-        })
-      );
+    if (!result.ok) {
+      console.error("Booking Apps Script response:", JSON.stringify({
+        http_status: result.http_status || response.status,
+        code: result.code || "BOOKING_FAILED",
+        message: result.message || result.error || "Unknown booking error",
+      }));
 
       return json(
         {
           ok: false,
           code: result.code || "BOOKING_FAILED",
-          error: conflict
-            ? "The selected time is no longer available"
-            : result.error || "Unable to create appointment",
+          error: result.message || result.error || "Unable to create appointment",
+          retryable: Boolean(result.retryable),
         },
-        conflict ? 409 : 503
+        appsScriptStatus(result)
       );
     }
 
     return json({
       ok: true,
+      code: result.code || "BOOKING_CREATED",
       already_booked: Boolean(result.already_booked),
-      start: result.start,
-      end: result.end,
+      booking_id: result.booking_id || "",
+      start: result.start || "",
+      end: result.end || "",
       meet_link: result.meet_link || "",
+      management_url: result.management_url || "",
+      reconciliation_required: Boolean(result.reconciliation_required),
     });
   } catch (error) {
-    console.error(
-      "Booking function exception:",
-      error && error.stack ? error.stack : String(error)
-    );
-
-    return json(
-      {
-        ok: false,
-        error: "Unable to create appointment",
-      },
-      503
-    );
+    console.error("Booking function exception:", error && error.stack ? error.stack : String(error));
+    return json({ ok: false, code: "BOOKING_GATEWAY_ERROR", error: "Unable to create appointment" }, 503);
   }
 };
 
