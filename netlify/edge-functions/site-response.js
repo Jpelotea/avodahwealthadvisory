@@ -1,3 +1,5 @@
+import { parse, serialize } from "npm:parse5@8.0.0";
+
 const CLEAN_ROUTES = {
   "/about/": "/about.html",
   "/services/": "/services.html",
@@ -42,8 +44,33 @@ const LEGACY_REDIRECTS = {
   "/cookie-policy.html": "/cookies/",
 };
 
-const RELEASE_CANDIDATE_REVISION = "m7-security-v4";
+const RELEASE_CANDIDATE_REVISION = "m7-analytics-v5";
+const GA_MEASUREMENT_ID = "G-HV9X54P7NT";
 const productionCanonical = (path) => `https://avodahwealthadvisory.netlify.app${path}`;
+
+const attributeValue = (node, name) => node.attrs?.find((item) => item.name === name)?.value || "";
+const scriptText = (node) => (node.childNodes || [])
+  .filter((child) => child.nodeName === "#text")
+  .map((child) => child.value || "")
+  .join("");
+
+const stripLegacyAnalytics = (html) => {
+  const document = parse(html);
+  const visit = (node) => {
+    if (!node?.childNodes) return;
+    node.childNodes = node.childNodes.filter((child) => {
+      if (child.tagName !== "script") return true;
+      const source = attributeValue(child, "src");
+      const inline = scriptText(child);
+      const legacyLoader = source.includes("googletagmanager.com/gtag/js");
+      const legacyConfig = inline.includes(GA_MEASUREMENT_ID) && inline.includes("gtag(");
+      return !legacyLoader && !legacyConfig;
+    });
+    node.childNodes.forEach(visit);
+  };
+  visit(document);
+  return serialize(document);
+};
 
 const normalizeRootDocumentUrls = (html) =>
   html.replace(/\b(href|src|action)=(['"])([^'"]+)\2/gi, (match, attribute, quote, value) => {
@@ -63,22 +90,16 @@ export default async (request, context) => {
     return Response.redirect(target, 301);
   }
 
-  // Netlify evaluates the matching 200 rewrite after Edge middleware proceeds.
-  // This lets context.next() return the static source response while preserving
-  // the visitor-facing clean URL and avoids recursive same-site fetch chains.
   const sourcePath = CLEAN_ROUTES[pathname];
   const response = await context.next();
 
   const contentType = response.headers.get("content-type") || "";
   if (!contentType.includes("text/html")) return response;
 
-  let html = await response.text();
+  let html = stripLegacyAnalytics(await response.text());
   const deployContext = Netlify.env.get("CONTEXT") || "";
   const nonProduction = deployContext === "branch-deploy" || deployContext === "deploy-preview";
 
-  // Optional analytics are loaded only by consent-bootstrap.js. No legacy
-  // analytics snippet remains in the static source, so no HTML string
-  // sanitization is performed here.
   if (sourcePath) {
     html = normalizeRootDocumentUrls(html);
     const canonical = productionCanonical(pathname);
@@ -94,6 +115,7 @@ export default async (request, context) => {
   if (!html.includes("/analytics.js")) additions.push('<script src="/analytics.js?v=20260724-m4" defer></script>');
   if (!html.includes("/cookie-preferences.js")) additions.push('<script src="/cookie-preferences.js?v=20260724-m4" defer></script>');
   if (pathname === "/consultation/" && !html.includes("/needs-check-consent.js")) additions.push('<script src="/needs-check-consent.js?v=20260725-m7" defer></script>');
+  if (pathname === "/system-error.html" && !html.includes("/system-error.js")) additions.push('<script src="/system-error.js?v=20260725-m7" defer></script>');
 
   if (nonProduction) {
     html = html.replace(/<meta\b[^>]*name=["']robots["'][^>]*>/gi, "");
