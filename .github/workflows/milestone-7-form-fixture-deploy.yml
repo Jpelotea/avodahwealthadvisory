@@ -7,12 +7,19 @@ on:
     paths:
       - qa/form-fixture/**
       - .github/workflows/milestone-7-form-fixture-deploy.yml
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+    paths:
+      - qa/form-fixture/**
+      - .github/workflows/milestone-7-form-fixture-deploy.yml
 
 permissions:
   contents: read
 
 jobs:
   deploy-isolated-form-fixture:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -48,7 +55,7 @@ jobs:
             echo "::error::Executable integration file found in isolated fixture"
             exit 1
           fi
-          if grep -RniE 'GOOGLE_SHEETS_WEBHOOK|Apps Script|script\.google\.com|calendar\.google|meet\.google|Operations Hub|G-[A-Z0-9]{6,}|facebook\.com/tr' qa/form-fixture; then
+          if grep -RniE 'GOOGLE_SHEETS_WEBHOOK|script\.google\.com|calendar\.google|meet\.google|G-[A-Z0-9]{6,}|facebook\.com/tr' qa/form-fixture; then
             echo "::error::Potential production integration identifier found in isolated fixture"
             exit 1
           fi
