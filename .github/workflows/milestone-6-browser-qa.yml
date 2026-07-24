@@ -1,4 +1,4 @@
-name: Milestone 7 Browser QA and Performance
+name: Milestone 8 Definitive Browser QA and Performance
 
 on:
   push:
@@ -12,12 +12,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: milestone-7-qa-${{ github.event.pull_request.number || github.ref }}
+  group: milestone-8-qa-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 env:
   PLAYWRIGHT_BASE_URL: https://deploy-preview-8--avodahwealthadvisory.netlify.app
-  EXPECTED_RC_REVISION: m7-security-v4
+  EXPECTED_RC_REVISION: m8-deploy-recovery-v1
 
 jobs:
   synchronization-isolation:
@@ -29,13 +29,15 @@ jobs:
         with:
           node-version: 22
       - run: npm install --no-audit --no-fund
-      - name: Run synchronization isolation unit tests
+      - name: Reproduce Netlify static build
+        run: npm run build
+      - name: Run synchronization isolation and Edge import unit tests
         run: npm run test:unit
-      - name: Upload synchronization test output
+      - name: Upload synchronization and build-test output
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: milestone-7-sync-isolation-${{ github.sha }}
+          name: milestone-8-sync-isolation-${{ github.sha }}
           path: test-results/unit
           if-no-files-found: ignore
           retention-days: 30
@@ -56,15 +58,21 @@ jobs:
       - run: npm install --no-audit --no-fund
       - name: Install ${{ matrix.browser }} browser
         run: npx playwright install --with-deps ${{ matrix.browser }}
-      - name: Wait for matching protected Deploy Preview
+      - name: Wait for exact protected Deploy Preview revision
+        shell: bash
         run: |
+          mkdir -p test-results/evidence
           for i in {1..60}; do
             headers=$(mktemp)
             code=$(curl -sS -D "$headers" -o /dev/null -w '%{http_code}' "$PLAYWRIGHT_BASE_URL" || true)
             robots=$(awk 'BEGIN{IGNORECASE=1} /^x-robots-tag:/ {sub(/^[^:]+:[[:space:]]*/, ""); print}' "$headers" | tr -d '\r')
             revision=$(awk 'BEGIN{IGNORECASE=1} /^x-avodah-rc-revision:/ {sub(/^[^:]+:[[:space:]]*/, ""); print}' "$headers" | tr -d '\r')
+            context=$(awk 'BEGIN{IGNORECASE=1} /^x-avodah-deploy-context:/ {sub(/^[^:]+:[[:space:]]*/, ""); print}' "$headers" | tr -d '\r')
             rm -f "$headers"
-            if [ "$code" = "200" ] && echo "$robots" | grep -qi 'noindex' && [ "$revision" = "$EXPECTED_RC_REVISION" ]; then exit 0; fi
+            if [ "$code" = "200" ] && echo "$robots" | grep -qi 'noindex' && [ "$revision" = "$EXPECTED_RC_REVISION" ] && [ "$context" = "deploy-preview" ]; then
+              printf '{"expectedRevision":"%s","observedRevision":"%s","deployContext":"%s","httpStatus":%s,"target":"%s","githubSha":"%s"}\n' "$EXPECTED_RC_REVISION" "$revision" "$context" "$code" "$PLAYWRIGHT_BASE_URL" "$GITHUB_SHA" > "test-results/evidence/revision-${{ matrix.browser }}.json"
+              exit 0
+            fi
             sleep 10
           done
           echo "Deploy Preview did not reach protected revision $EXPECTED_RC_REVISION."
@@ -75,7 +83,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: milestone-7-${{ matrix.browser }}-qa-${{ github.sha }}
+          name: milestone-8-${{ matrix.browser }}-qa-${{ github.sha }}
           path: |
             playwright-report
             test-results
@@ -94,15 +102,21 @@ jobs:
       - run: npm install --no-audit --no-fund
       - name: Install Chromium for Lighthouse
         run: npx playwright install --with-deps chromium
-      - name: Wait for matching protected Deploy Preview
+      - name: Wait for exact protected Deploy Preview revision
+        shell: bash
         run: |
+          mkdir -p test-results/lighthouse
           for i in {1..60}; do
             headers=$(mktemp)
             code=$(curl -sS -D "$headers" -o /dev/null -w '%{http_code}' "$PLAYWRIGHT_BASE_URL" || true)
             robots=$(awk 'BEGIN{IGNORECASE=1} /^x-robots-tag:/ {sub(/^[^:]+:[[:space:]]*/, ""); print}' "$headers" | tr -d '\r')
             revision=$(awk 'BEGIN{IGNORECASE=1} /^x-avodah-rc-revision:/ {sub(/^[^:]+:[[:space:]]*/, ""); print}' "$headers" | tr -d '\r')
+            context=$(awk 'BEGIN{IGNORECASE=1} /^x-avodah-deploy-context:/ {sub(/^[^:]+:[[:space:]]*/, ""); print}' "$headers" | tr -d '\r')
             rm -f "$headers"
-            if [ "$code" = "200" ] && echo "$robots" | grep -qi 'noindex' && [ "$revision" = "$EXPECTED_RC_REVISION" ]; then exit 0; fi
+            if [ "$code" = "200" ] && echo "$robots" | grep -qi 'noindex' && [ "$revision" = "$EXPECTED_RC_REVISION" ] && [ "$context" = "deploy-preview" ]; then
+              printf '{"expectedRevision":"%s","observedRevision":"%s","deployContext":"%s","httpStatus":%s,"target":"%s","githubSha":"%s"}\n' "$EXPECTED_RC_REVISION" "$revision" "$context" "$code" "$PLAYWRIGHT_BASE_URL" "$GITHUB_SHA" > test-results/lighthouse/revision.json
+              exit 0
+            fi
             sleep 10
           done
           echo "Deploy Preview did not reach protected revision $EXPECTED_RC_REVISION."
@@ -110,7 +124,6 @@ jobs:
       - name: Run Lighthouse on priority workflows
         shell: bash
         run: |
-          mkdir -p test-results/lighthouse
           CHROME_PATH=$(node -e "console.log(require('playwright').chromium.executablePath())")
           export CHROME_PATH
           declare -A pages=(
@@ -158,7 +171,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: milestone-7-lighthouse-${{ github.sha }}
+          name: milestone-8-lighthouse-${{ github.sha }}
           path: test-results/lighthouse
           if-no-files-found: warn
           retention-days: 30
