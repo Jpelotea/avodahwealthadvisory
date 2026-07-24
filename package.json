@@ -2,12 +2,14 @@
   "name": "avodah-website-qa",
   "private": true,
   "scripts": {
+    "build": "node scripts/prepare-static-site.mjs",
     "test": "node --test tests/unit/*.test.mjs",
     "test:unit": "node --test tests/unit/*.test.mjs",
     "test:e2e": "playwright test"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.10.2",
-    "@playwright/test": "^1.54.1"
+    "@playwright/test": "^1.54.1",
+    "parse5": "^8.0.0"
   }
 }
