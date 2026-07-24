@@ -40,14 +40,23 @@
     wait_for_update: 500,
   });
 
+  const expireCookie = (name, domain = "") => {
+    const domainPart = domain ? `; domain=${domain}` : "";
+    document.cookie = `${name}=; Max-Age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/${domainPart}; SameSite=Lax`;
+  };
+
   const removeAnalyticsCookies = () => {
+    const host = location.hostname;
     document.cookie.split(";").forEach((cookie) => {
       const name = cookie.split("=")[0]?.trim();
       if (!name || (!name.startsWith("_ga") && name !== "_gid" && name !== "_gat")) return;
-      document.cookie = `${name}=; Max-Age=0; path=/; SameSite=Lax`;
-      const domain = location.hostname.split(".").slice(-2).join(".");
-      if (domain.includes(".")) {
-        document.cookie = `${name}=; Max-Age=0; path=/; domain=.${domain}; SameSite=Lax`;
+      expireCookie(name);
+      expireCookie(name, host);
+      expireCookie(name, `.${host}`);
+      const registrableCandidate = host.split(".").slice(-2).join(".");
+      if (registrableCandidate && registrableCandidate !== host) {
+        expireCookie(name, registrableCandidate);
+        expireCookie(name, `.${registrableCandidate}`);
       }
     });
   };
