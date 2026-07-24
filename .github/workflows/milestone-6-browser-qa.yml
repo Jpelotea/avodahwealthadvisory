@@ -17,6 +17,7 @@ concurrency:
 
 env:
   PLAYWRIGHT_BASE_URL: https://deploy-preview-8--avodahwealthadvisory.netlify.app
+  EXPECTED_RC_REVISION: m7-static-fetch-v1
 
 jobs:
   synchronization-isolation:
@@ -57,15 +58,16 @@ jobs:
         run: npx playwright install --with-deps ${{ matrix.browser }}
       - name: Wait for matching protected Deploy Preview
         run: |
-          for i in {1..30}; do
+          for i in {1..60}; do
             headers=$(mktemp)
             code=$(curl -sS -D "$headers" -o /dev/null -w '%{http_code}' "$PLAYWRIGHT_BASE_URL" || true)
             robots=$(awk 'BEGIN{IGNORECASE=1} /^x-robots-tag:/ {sub(/^[^:]+:[[:space:]]*/, ""); print}' "$headers" | tr -d '\r')
+            revision=$(awk 'BEGIN{IGNORECASE=1} /^x-avodah-rc-revision:/ {sub(/^[^:]+:[[:space:]]*/, ""); print}' "$headers" | tr -d '\r')
             rm -f "$headers"
-            if [ "$code" = "200" ] && echo "$robots" | grep -qi 'noindex'; then exit 0; fi
+            if [ "$code" = "200" ] && echo "$robots" | grep -qi 'noindex' && [ "$revision" = "$EXPECTED_RC_REVISION" ]; then exit 0; fi
             sleep 10
           done
-          echo "Deploy Preview did not become ready with noindex protection."
+          echo "Deploy Preview did not reach protected revision $EXPECTED_RC_REVISION."
           exit 1
       - name: Run ${{ matrix.browser }} browser QA
         run: npm run test:e2e -- --project=${{ matrix.browser }}
@@ -94,14 +96,16 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Wait for matching protected Deploy Preview
         run: |
-          for i in {1..30}; do
+          for i in {1..60}; do
             headers=$(mktemp)
             code=$(curl -sS -D "$headers" -o /dev/null -w '%{http_code}' "$PLAYWRIGHT_BASE_URL" || true)
             robots=$(awk 'BEGIN{IGNORECASE=1} /^x-robots-tag:/ {sub(/^[^:]+:[[:space:]]*/, ""); print}' "$headers" | tr -d '\r')
+            revision=$(awk 'BEGIN{IGNORECASE=1} /^x-avodah-rc-revision:/ {sub(/^[^:]+:[[:space:]]*/, ""); print}' "$headers" | tr -d '\r')
             rm -f "$headers"
-            if [ "$code" = "200" ] && echo "$robots" | grep -qi 'noindex'; then exit 0; fi
+            if [ "$code" = "200" ] && echo "$robots" | grep -qi 'noindex' && [ "$revision" = "$EXPECTED_RC_REVISION" ]; then exit 0; fi
             sleep 10
           done
+          echo "Deploy Preview did not reach protected revision $EXPECTED_RC_REVISION."
           exit 1
       - name: Run Lighthouse on priority workflows
         shell: bash
