@@ -16,6 +16,7 @@
     const hidden = document.createElement("div");
     hidden.hidden = true;
     hidden.innerHTML = `
+      <input type="hidden" name="consent" value="">
       <input type="hidden" name="processing_consent_version" value="needs-check-processing-v1-2026-07-24">
       <input type="hidden" name="marketing_consent_version" value="marketing-v1-2026-07-24">
       <input type="hidden" name="consent_recorded_at" value="">`;
@@ -39,6 +40,8 @@
     updateRequiredState();
 
     form.addEventListener("submit", () => {
+      const compatibility = form.querySelector('input[type="hidden"][name="consent"]');
+      if (compatibility) compatibility.value = legacy.checked ? "Yes" : "";
       const recordedAt = form.querySelector('input[name="consent_recorded_at"]');
       if (recordedAt) recordedAt.value = new Date().toISOString();
     }, { capture: true });
