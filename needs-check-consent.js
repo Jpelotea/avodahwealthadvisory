@@ -18,6 +18,7 @@
     hidden.innerHTML = `
       <input type="hidden" name="consent" value="">
       <input type="hidden" name="processing_consent_version" value="needs-check-processing-v1-2026-07-24">
+      <input type="hidden" name="marketing_consent" value="No">
       <input type="hidden" name="marketing_consent_version" value="marketing-v1-2026-07-24">
       <input type="hidden" name="consent_recorded_at" value="">`;
     container?.before(hidden);
@@ -25,9 +26,12 @@
     const optional = document.createElement("label");
     optional.className = container?.className || "consent";
     optional.innerHTML = `
-      <input type="checkbox" name="marketing_consent" value="Yes">
+      <input type="checkbox" value="Yes" data-marketing-consent-control>
       <span><strong>Optional marketing permission:</strong> I would like future educational updates, campaigns, or promotional messages. This is optional, unchecked by default, and does not affect this request.</span>`;
     container?.after(optional);
+
+    const marketingChoice = form.querySelector('input[type="hidden"][name="marketing_consent"]');
+    const marketingControl = form.querySelector('[data-marketing-consent-control]');
 
     const updateRequiredState = () => {
       const wantsContact = form.querySelector('input[name="book_consultation"]:checked')?.value === "Yes";
@@ -42,6 +46,7 @@
     form.addEventListener("submit", () => {
       const compatibility = form.querySelector('input[type="hidden"][name="consent"]');
       if (compatibility) compatibility.value = legacy.checked ? "Yes" : "";
+      if (marketingChoice) marketingChoice.value = marketingControl?.checked ? "Yes" : "No";
       const recordedAt = form.querySelector('input[name="consent_recorded_at"]');
       if (recordedAt) recordedAt.value = new Date().toISOString();
     }, { capture: true });
