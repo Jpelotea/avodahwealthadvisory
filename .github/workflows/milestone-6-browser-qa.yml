@@ -17,7 +17,7 @@ concurrency:
 
 env:
   PLAYWRIGHT_BASE_URL: https://deploy-preview-8--avodahwealthadvisory.netlify.app
-  EXPECTED_RC_REVISION: m7-consent-v3
+  EXPECTED_RC_REVISION: m7-security-v4
 
 jobs:
   synchronization-isolation:
