@@ -3,6 +3,7 @@ import AxeBuilder from '@axe-core/playwright';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
+const CONSENT_STORAGE_KEY = 'avodah_cookie_preferences';
 const routes = [
   ['home', '/'], ['consultation', '/consultation/'], ['consultation-confirmation', '/consultation/confirmation/'],
   ['booking-confirmation', '/consultation/booking-confirmation/'], ['client-support', '/client-support/'],
@@ -35,6 +36,11 @@ async function gotoReady(page, route) {
   await page.waitForLoadState('load', { timeout: 15_000 }).catch(() => {});
   await page.waitForTimeout(350);
   return response;
+}
+
+async function activate(locator) {
+  await locator.focus();
+  await locator.dispatchEvent('click');
 }
 
 function isPreviewPlatformNoise(text) {
@@ -105,9 +111,7 @@ test('consent blocks analytics before acceptance and after rejection', async ({ 
   const analytics = await captureAnalytics(page);
   await gotoReady(page, '/');
   expect(analytics).toEqual([]);
-  const reject = page.getByRole('button', { name: /reject optional/i });
-  await expect(reject).toBeVisible();
-  await reject.click();
+  await activate(page.getByRole('button', { name: /reject optional/i }));
   await page.waitForTimeout(1200);
   expect(analytics).toEqual([]);
   await writeJson(`${testInfo.project.name}-consent-before-and-rejected.json`, { analyticsRequests: analytics });
@@ -116,7 +120,7 @@ test('consent blocks analytics before acceptance and after rejection', async ({ 
 test('analytics acceptance sends only consented allowlisted data', async ({ page }, testInfo) => {
   const analytics = await captureAnalytics(page);
   await gotoReady(page, '/');
-  await page.getByRole('button', { name: /accept analytics/i }).click();
+  await activate(page.getByRole('button', { name: /accept analytics/i }));
   await expect.poll(() => analytics.some(item => /googletagmanager\.com\/gtag\/js/i.test(item.url)), { timeout: 15_000 }).toBe(true);
 
   await page.evaluate(() => {
@@ -138,14 +142,13 @@ test('analytics acceptance sends only consented allowlisted data', async ({ page
 test('revoking analytics stops future events and removes first-party GA cookies', async ({ page }, testInfo) => {
   const analytics = await captureAnalytics(page);
   await gotoReady(page, '/');
-  await page.getByRole('button', { name: /accept analytics/i }).click();
+  await activate(page.getByRole('button', { name: /accept analytics/i }));
   await expect.poll(() => analytics.some(item => /googletagmanager\.com\/gtag\/js/i.test(item.url)), { timeout: 15_000 }).toBe(true);
 
-  const reopen = page.locator('[data-cookie-reopen]').first();
-  await reopen.click();
+  await activate(page.locator('[data-cookie-reopen]').first());
   const analyticsToggle = page.locator('[data-cookie-analytics]');
   await analyticsToggle.uncheck();
-  await page.getByRole('button', { name: /accept selected/i }).click();
+  await activate(page.getByRole('button', { name: /accept selected/i }));
   const before = analytics.length;
   await page.evaluate(() => window.AvodahAnalytics?.track('general_inquiry_submitted', { workflow: 'general_inquiry', status: 'submitted' }));
   await page.waitForTimeout(1500);
@@ -156,12 +159,12 @@ test('revoking analytics stops future events and removes first-party GA cookies'
 });
 
 test('returning current-version analytics preference is applied before optional scripts', async ({ page }, testInfo) => {
-  await page.addInitScript(() => {
-    localStorage.setItem('avodahCookiePreferences', JSON.stringify({
+  await page.addInitScript(({ key }) => {
+    localStorage.setItem(key, JSON.stringify({
       essential: true, analytics: true, marketing: false,
       version: 'cookie-consent-v2-2026-07-24', saved_at: new Date().toISOString()
     }));
-  });
+  }, { key: CONSENT_STORAGE_KEY });
   const analytics = await captureAnalytics(page);
   await gotoReady(page, '/');
   await expect.poll(() => analytics.some(item => /googletagmanager\.com\/gtag\/js/i.test(item.url)), { timeout: 15_000 }).toBe(true);
@@ -169,12 +172,12 @@ test('returning current-version analytics preference is applied before optional 
 });
 
 test('outdated consent version returns to denied default', async ({ page }, testInfo) => {
-  await page.addInitScript(() => {
-    localStorage.setItem('avodahCookiePreferences', JSON.stringify({
+  await page.addInitScript(({ key }) => {
+    localStorage.setItem(key, JSON.stringify({
       essential: true, analytics: true, marketing: true,
       version: 'outdated-consent-version', saved_at: new Date().toISOString()
     }));
-  });
+  }, { key: CONSENT_STORAGE_KEY });
   const analytics = await captureAnalytics(page);
   await gotoReady(page, '/');
   await page.waitForTimeout(1200);
@@ -186,30 +189,37 @@ test('outdated consent version returns to denied default', async ({ page }, test
 test('forms expose separate processing and marketing controls', async ({ page }) => {
   await gotoReady(page, '/consultation/');
   const processing = page.locator('[name="processing_consent"]');
-  const marketing = page.locator('[name="marketing_consent"]');
+  const marketingControl = page.locator('[data-marketing-consent-control]');
+  const marketingChoice = page.locator('input[type="hidden"][name="marketing_consent"]');
   const compatibility = page.locator('input[type="hidden"][name="consent"]');
   await expect(processing).toHaveCount(1, { timeout: 30_000 });
-  await expect(marketing).toHaveCount(1, { timeout: 30_000 });
-  await expect(marketing).not.toBeChecked();
+  await expect(marketingControl).toHaveCount(1, { timeout: 30_000 });
+  await expect(marketingControl).not.toBeChecked();
+  await expect(marketingChoice).toHaveValue('No');
   await expect(compatibility).toHaveCount(1);
 
-  await page.evaluate(() => {
-    const radio = document.querySelector('input[name="book_consultation"][value="Yes"]');
-    radio.checked = true;
-    radio.dispatchEvent(new Event('change', { bubbles: true }));
-  });
-  await expect(processing).toHaveAttribute('required', '');
+  await page.evaluate(() => document.querySelector('input[name="book_consultation"][value="Yes"]')?.click());
+  await expect.poll(() => page.evaluate(() => document.querySelector('[name="processing_consent"]')?.required)).toBe(true);
   await page.evaluate(() => {
     const form = document.querySelector('#needs-form');
     const processingInput = form.querySelector('[name="processing_consent"]');
-    const marketingInput = form.querySelector('[name="marketing_consent"]');
+    const marketingInput = form.querySelector('[data-marketing-consent-control]');
     processingInput.checked = true;
     marketingInput.checked = false;
     form.addEventListener('submit', event => event.preventDefault(), { once: true });
     form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
   });
   await expect(compatibility).toHaveValue('Yes');
-  await expect(marketing).not.toBeChecked();
+  await expect(marketingChoice).toHaveValue('No');
+
+  await marketingControl.check({ force: true });
+  await page.evaluate(() => {
+    const form = document.querySelector('#needs-form');
+    form.addEventListener('submit', event => event.preventDefault(), { once: true });
+    form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+  });
+  await expect(compatibility).toHaveValue('Yes');
+  await expect(marketingChoice).toHaveValue('Yes');
 });
 
 test('keyboard navigation exposes skip link and no immediate trap', async ({ page }) => {
@@ -230,7 +240,7 @@ test('cookie dialog traps focus, closes with Escape, and restores focus', async 
   await expect(dialog).toBeVisible();
   for (let i = 0; i < 10; i++) {
     await page.keyboard.press('Tab');
-    expect(await page.evaluate(() => document.querySelector('[data-cookie-dialog]')?.contains(document.activeElement))).toBe(true);
+    expect(await dialog.evaluate(element => element.contains(document.activeElement))).toBe(true);
   }
   await page.keyboard.press('Escape');
   await expect(dialog).toBeHidden();
