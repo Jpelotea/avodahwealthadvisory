@@ -42,7 +42,7 @@ const LEGACY_REDIRECTS = {
   "/cookie-policy.html": "/cookies/",
 };
 
-const RELEASE_CANDIDATE_REVISION = "m7-static-rewrite-v2";
+const RELEASE_CANDIDATE_REVISION = "m7-consent-v3";
 const productionCanonical = (path) => `https://avodahwealthadvisory.netlify.app${path}`;
 
 const normalizeRootDocumentUrls = (html) =>
@@ -94,7 +94,7 @@ export default async (request, context) => {
   if (!html.includes("/site-shell.js")) additions.push('<script src="/site-shell.js?v=20260724-m4" defer></script>');
   if (!html.includes("/analytics.js")) additions.push('<script src="/analytics.js?v=20260724-m4" defer></script>');
   if (!html.includes("/cookie-preferences.js")) additions.push('<script src="/cookie-preferences.js?v=20260724-m4" defer></script>');
-  if (pathname === "/consultation/" && !html.includes("/needs-check-consent.js")) additions.push('<script src="/needs-check-consent.js?v=20260724-m4" defer></script>');
+  if (pathname === "/consultation/" && !html.includes("/needs-check-consent.js")) additions.push('<script src="/needs-check-consent.js?v=20260725-m7" defer></script>');
 
   if (nonProduction) {
     html = html.replace(/<meta\b[^>]*name=["']robots["'][^>]*>/gi, "");
