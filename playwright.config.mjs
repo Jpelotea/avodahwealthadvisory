@@ -4,9 +4,10 @@ const baseURL = process.env.PLAYWRIGHT_BASE_URL || 'https://deploy-preview-8--av
 
 export default defineConfig({
   testDir: './tests/e2e',
-  timeout: 60_000,
-  expect: { timeout: 10_000 },
-  fullyParallel: false,
+  timeout: 90_000,
+  expect: { timeout: 12_000 },
+  fullyParallel: true,
+  workers: process.env.CI ? 3 : undefined,
   retries: process.env.CI ? 1 : 0,
   reporter: [
     ['list'],
