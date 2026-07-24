@@ -115,14 +115,15 @@ jobs:
             [client-support]="/client-support/"
             [recruitment-application]="/careers/apply/"
           )
+          lighthouse_status=0
           for name in homepage consultation client-support recruitment-application; do
-            npx --yes lighthouse@latest "${PLAYWRIGHT_BASE_URL}${pages[$name]}" \
+            npx --yes lighthouse@13.4.1 "${PLAYWRIGHT_BASE_URL}${pages[$name]}" \
               --chrome-path="$CHROME_PATH" \
               --chrome-flags="--headless --no-sandbox" \
               --only-categories=performance,accessibility,best-practices,seo \
               --output=json --output=html \
               --output-path="test-results/lighthouse/$name" \
-              --quiet
+              --quiet || lighthouse_status=1
           done
           node - <<'NODE'
           const fs = require('fs');
@@ -131,21 +132,24 @@ jobs:
           const reports = fs.readdirSync(directory).filter(name => name.endsWith('.report.json'));
           const summary = reports.map(file => {
             const report = JSON.parse(fs.readFileSync(path.join(directory, file), 'utf8'));
-            const a = report.audits;
+            const a = report.audits || {};
             return {
               page: file.replace('.report.json', ''),
               finalUrl: report.finalUrl,
-              scores: Object.fromEntries(Object.entries(report.categories).map(([key, value]) => [key, Math.round((value.score || 0) * 100)])),
+              runtimeError: report.runtimeError || null,
+              scores: Object.fromEntries(Object.entries(report.categories || {}).map(([key, value]) => [key, value.score == null ? null : Math.round(value.score * 100)])),
               metrics: {
-                largestContentfulPaintMs: a['largest-contentful-paint']?.numericValue,
-                cumulativeLayoutShift: a['cumulative-layout-shift']?.numericValue,
-                totalBlockingTimeMs: a['total-blocking-time']?.numericValue,
-                speedIndexMs: a['speed-index']?.numericValue,
+                largestContentfulPaintMs: a['largest-contentful-paint']?.numericValue ?? null,
+                cumulativeLayoutShift: a['cumulative-layout-shift']?.numericValue ?? null,
+                totalBlockingTimeMs: a['total-blocking-time']?.numericValue ?? null,
+                speedIndexMs: a['speed-index']?.numericValue ?? null,
               }
             };
           });
           fs.writeFileSync(path.join(directory, 'summary.json'), JSON.stringify(summary, null, 2));
+          if (summary.length !== 4 || summary.some(item => item.runtimeError)) process.exitCode = 1;
           NODE
+          exit "$lighthouse_status"
       - name: Upload Lighthouse evidence
         if: always()
         uses: actions/upload-artifact@v4
