@@ -34,6 +34,7 @@ const LEGACY_REDIRECTS = {
   "/recruitment-application.html": "/careers/apply/",
   "/recruitment-confirmation.html": "/careers/confirmation/",
   "/general-inquiry.html": "/contact/",
+  "/contact.html": "/contact/",
   "/contact-confirmation.html": "/contact/confirmation/",
   "/privacy-policy.html": "/privacy/",
   "/terms.html": "/terms/",
@@ -42,6 +43,13 @@ const LEGACY_REDIRECTS = {
 };
 
 const productionCanonical = (path) => `https://avodahwealthadvisory.netlify.app${path}`;
+
+const normalizeRootDocumentUrls = (html) =>
+  html.replace(/\b(href|src|action)=(['"])([^'"]+)\2/gi, (match, attribute, quote, value) => {
+    const trimmed = value.trim();
+    if (!trimmed || /^(?:[a-z][a-z0-9+.-]*:|\/\/|\/|#|\?)/i.test(trimmed)) return match;
+    return `${attribute}=${quote}/${trimmed}${quote}`;
+  });
 
 export default async (request, context) => {
   const requestUrl = new URL(request.url);
@@ -70,6 +78,7 @@ export default async (request, context) => {
     .replace(/<script>\s*window\.dataLayer\s*=\s*window\.dataLayer\s*\|\|\s*\[\][\s\S]*?gtag\(['"]config['"][\s\S]*?<\/script>/gi, "");
 
   if (sourcePath) {
+    html = normalizeRootDocumentUrls(html);
     const canonical = productionCanonical(pathname);
     html = html.replace(/<link\b[^>]*rel=["']canonical["'][^>]*>/gi, `<link rel="canonical" href="${canonical}">`);
     html = html.replace(/<meta\b[^>]*property=["']og:url["'][^>]*>/gi, `<meta property="og:url" content="${canonical}">`);
@@ -77,6 +86,7 @@ export default async (request, context) => {
 
   const additions = [];
   if (!html.includes("/workflow.css")) additions.push('<link rel="stylesheet" href="/workflow.css?v=20260724-m4">');
+  if (!html.includes("/milestone-7-fixes.css")) additions.push('<link rel="stylesheet" href="/milestone-7-fixes.css?v=20260725-m7">');
   if (!html.includes("/consent-bootstrap.js")) additions.push('<script src="/consent-bootstrap.js?v=20260724-m4"></script>');
   if (!html.includes("/site-shell.js")) additions.push('<script src="/site-shell.js?v=20260724-m4" defer></script>');
   if (!html.includes("/analytics.js")) additions.push('<script src="/analytics.js?v=20260724-m4" defer></script>');
