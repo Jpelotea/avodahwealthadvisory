@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <title>Avodah Milestone 7 Isolated Form Verification</title>
+  <style>
+    body{font:16px/1.5 system-ui,sans-serif;max-width:960px;margin:auto;padding:2rem;background:#f7f7f7;color:#1f2937}
+    main{background:#fff;padding:1.5rem;border-radius:.75rem}
+    form{border:1px solid #b8bec7;padding:1rem;margin:1.5rem 0;border-radius:.5rem}
+    label{display:block;margin:.75rem 0}input,select,textarea,button{font:inherit;max-width:100%}
+    input:not([type=checkbox]),select,textarea{width:100%;box-sizing:border-box;padding:.55rem}
+    .test{background:#fff3cd;padding:1rem;border:2px solid #8a6500;border-radius:.5rem}
+    button{padding:.65rem 1rem}.hp{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden}
+  </style>
+</head>
+<body>
+<main>
+  <div class="test"><strong>TEST ENVIRONMENT — SYNTHETIC DATA ONLY</strong><br>No production webhook, Google Calendar, Google Meet, Apps Script, Operations Hub, email recipient, or analytics identifier is configured.</div>
+  <h1>Milestone 7 isolated Netlify form verification</h1>
+  <p>Use only synthetic records such as “TEST M7 — Not a Real Client”.</p>
+
+  <form name="consultation" method="POST" data-netlify="true" netlify-honeypot="bot-field" action="/confirmation.html" data-test-form>
+    <input type="hidden" name="form-name" value="consultation"><p class="hp"><label>Leave empty <input name="bot-field"></label></p>
+    <input type="hidden" name="workflow_reference" value="TEST-M7-CONSULTATION"><input type="hidden" name="processing_consent_version" value="processing-consent-v1-2026-07-25"><input type="hidden" name="marketing_consent_version" value="marketing-consent-v1-2026-07-25"><input type="hidden" name="consent_recorded_at"><input type="hidden" name="lead_submission_id"><input type="hidden" name="consent" value="No"><input type="hidden" name="marketing_consent" value="No">
+    <input type="hidden" name="utm_source"><input type="hidden" name="utm_medium"><input type="hidden" name="utm_campaign"><input type="hidden" name="utm_content"><input type="hidden" name="utm_term"><input type="hidden" name="campaign_id"><input type="hidden" name="adset_id"><input type="hidden" name="ad_id"><input type="hidden" name="fbclid">
+    <h2>Consultation</h2><label>Full name <input name="full_name" required></label><label>Email <input name="email" type="email" required></label><label>Mobile <input name="mobile_number" required></label><label>City or province <input name="location" required></label><label>Financial concern <select name="inquiry_type" required><option value="">Select</option><option>Financial planning</option></select></label><label>Preferred consultation method <select name="preferred_contact_method" required><option value="">Select</option><option>Online</option></select></label><label>Schedule preference <input name="preferred_schedule" required></label><label>Optional message <textarea name="message"></textarea></label><label><input type="checkbox" name="processing_consent" value="Yes" required> Required processing consent</label><label><input type="checkbox" data-marketing> Optional marketing permission</label><button>Submit consultation test</button>
+  </form>
+
+  <form name="client-needs-check" method="POST" data-netlify="true" netlify-honeypot="bot-field" action="/confirmation.html" data-test-form>
+    <input type="hidden" name="form-name" value="client-needs-check"><p class="hp"><label>Leave empty <input name="bot-field"></label></p><input type="hidden" name="workflow_reference" value="TEST-M7-NEEDS"><input type="hidden" name="processing_consent_version" value="processing-consent-v1-2026-07-25"><input type="hidden" name="marketing_consent_version" value="marketing-consent-v1-2026-07-25"><input type="hidden" name="consent_recorded_at"><input type="hidden" name="lead_submission_id"><input type="hidden" name="consent" value="No"><input type="hidden" name="marketing_consent" value="No">
+    <h2>Client needs check</h2><label>Primary need <input name="primary_need" required></label><label>Service path <input name="service_path" required></label><label>Full name <input name="full_name" required></label><label>Email <input name="email" type="email" required></label><label>Mobile <input name="mobile_number" required></label><label>Location <input name="location" required></label><label>Preferred contact method <input name="preferred_contact_method" required></label><label>Preferred schedule <input name="preferred_schedule"></label><label>Additional notes <textarea name="additional_notes"></textarea></label><label><input type="checkbox" name="processing_consent" value="Yes" required> Required processing consent</label><label><input type="checkbox" data-marketing> Optional marketing permission</label><button>Submit needs test</button>
+  </form>
+
+  <form name="consultation-recovery" method="POST" data-netlify="true" netlify-honeypot="bot-field" action="/confirmation.html" data-test-form>
+    <input type="hidden" name="form-name" value="consultation-recovery"><p class="hp"><label>Leave empty <input name="bot-field"></label></p><input type="hidden" name="workflow_reference" value="TEST-M7-RECOVERY"><input type="hidden" name="processing_consent_version" value="processing-consent-v1-2026-07-25"><input type="hidden" name="marketing_consent_version" value="marketing-consent-v1-2026-07-25"><input type="hidden" name="consent_recorded_at"><input type="hidden" name="lead_submission_id"><input type="hidden" name="consent" value="No"><input type="hidden" name="marketing_consent" value="No">
+    <h2>Consultation recovery</h2><label>Email <input name="email" type="email" required></label><label>Workflow token <input name="workflow_token" required></label><label><input type="checkbox" name="processing_consent" value="Yes" required> Required processing consent</label><label><input type="checkbox" data-marketing> Optional marketing permission</label><button>Submit recovery test</button>
+  </form>
+
+  <form name="client-support" method="POST" data-netlify="true" netlify-honeypot="bot-field" action="/confirmation.html" data-test-form>
+    <input type="hidden" name="form-name" value="client-support"><p class="hp"><label>Leave empty <input name="bot-field"></label></p><input type="hidden" name="workflow_reference" value="TEST-M7-SUPPORT"><input type="hidden" name="processing_consent_version" value="processing-consent-v1-2026-07-25"><input type="hidden" name="marketing_consent_version" value="marketing-consent-v1-2026-07-25"><input type="hidden" name="consent_recorded_at"><input type="hidden" name="lead_submission_id"><input type="hidden" name="consent" value="No"><input type="hidden" name="marketing_consent" value="No">
+    <h2>Client support</h2><label>Full name <input name="full_name" required></label><label>Email <input name="email" type="email" required></label><label>Mobile <input name="mobile_number" required></label><label>Category <select name="category" required><option value="">Select</option><option>Policy support</option></select></label><label>Description <textarea name="description" required></textarea></label><label><input type="checkbox" name="processing_consent" value="Yes" required> Required processing consent</label><label><input type="checkbox" data-marketing> Optional marketing permission</label><button>Submit support test</button>
+  </form>
+
+  <form name="recruitment-application" method="POST" data-netlify="true" netlify-honeypot="bot-field" action="/confirmation.html" data-test-form>
+    <input type="hidden" name="form-name" value="recruitment-application"><p class="hp"><label>Leave empty <input name="bot-field"></label></p><input type="hidden" name="workflow_reference" value="TEST-M7-RECRUITMENT"><input type="hidden" name="processing_consent_version" value="processing-consent-v1-2026-07-25"><input type="hidden" name="marketing_consent_version" value="marketing-consent-v1-2026-07-25"><input type="hidden" name="consent_recorded_at"><input type="hidden" name="lead_submission_id"><input type="hidden" name="consent" value="No"><input type="hidden" name="marketing_consent" value="No">
+    <h2>Recruitment application</h2><label>Full name <input name="full_name" required></label><label>Email <input name="email" type="email" required></label><label>Mobile <input name="mobile_number" required></label><label>Role <input name="role" required></label><label>Experience summary <textarea name="experience_summary"></textarea></label><label><input type="checkbox" name="processing_consent" value="Yes" required> Required processing consent</label><label><input type="checkbox" data-marketing> Optional marketing permission</label><button>Submit recruitment test</button>
+  </form>
+
+  <form name="general-inquiry" method="POST" data-netlify="true" netlify-honeypot="bot-field" action="/confirmation.html" data-test-form>
+    <input type="hidden" name="form-name" value="general-inquiry"><p class="hp"><label>Leave empty <input name="bot-field"></label></p><input type="hidden" name="workflow_reference" value="TEST-M7-INQUIRY"><input type="hidden" name="processing_consent_version" value="processing-consent-v1-2026-07-25"><input type="hidden" name="marketing_consent_version" value="marketing-consent-v1-2026-07-25"><input type="hidden" name="consent_recorded_at"><input type="hidden" name="lead_submission_id"><input type="hidden" name="consent" value="No"><input type="hidden" name="marketing_consent" value="No">
+    <h2>General inquiry</h2><label>Full name <input name="full_name" required></label><label>Email <input name="email" type="email" required></label><label>Mobile <input name="mobile_number"></label><label>Subject <input name="subject" required></label><label>Message <textarea name="message" required></textarea></label><label><input type="checkbox" name="processing_consent" value="Yes" required> Required processing consent</label><label><input type="checkbox" data-marketing> Optional marketing permission</label><button>Submit inquiry test</button>
+  </form>
+</main>
+<script>
+  function testId(){return 'TEST-M7-'+crypto.randomUUID();}
+  document.querySelectorAll('[data-test-form]').forEach(form=>form.addEventListener('submit',()=>{
+    const processing=form.querySelector('[name="processing_consent"]');
+    form.querySelector('[name="consent"]').value=processing?.checked?'Yes':'No';
+    form.querySelector('[name="marketing_consent"]').value=form.querySelector('[data-marketing]')?.checked?'Yes':'No';
+    form.querySelector('[name="consent_recorded_at"]').value=new Date().toISOString();
+    form.querySelector('[name="lead_submission_id"]').value=testId();
+  }));
+</script>
+</body>
+</html>
