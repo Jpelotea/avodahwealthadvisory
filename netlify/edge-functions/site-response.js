@@ -42,6 +42,7 @@ const LEGACY_REDIRECTS = {
   "/cookie-policy.html": "/cookies/",
 };
 
+const INTERNAL_SOURCE_PARAMETER = "__avodah_static_source";
 const productionCanonical = (path) => `https://avodahwealthadvisory.netlify.app${path}`;
 
 const normalizeRootDocumentUrls = (html) =>
@@ -51,9 +52,29 @@ const normalizeRootDocumentUrls = (html) =>
     return `${attribute}=${quote}/${trimmed}${quote}`;
   });
 
+const fetchStaticSource = async (request, sourcePath) => {
+  const sourceUrl = new URL(sourcePath, request.url);
+  sourceUrl.searchParams.set(INTERNAL_SOURCE_PARAMETER, "1");
+  return fetch(sourceUrl, {
+    method: "GET",
+    headers: {
+      accept: request.headers.get("accept") || "text/html",
+      "accept-language": request.headers.get("accept-language") || "en",
+    },
+    redirect: "follow",
+  });
+};
+
 export default async (request, context) => {
   const requestUrl = new URL(request.url);
   const pathname = requestUrl.pathname;
+
+  // A guarded internal request retrieves the underlying static HTML without
+  // re-running clean-route redirects or response transformation recursively.
+  if (requestUrl.searchParams.get(INTERNAL_SOURCE_PARAMETER) === "1") {
+    return context.next();
+  }
+
   const redirectTarget = LEGACY_REDIRECTS[pathname];
   if (redirectTarget) {
     const target = new URL(redirectTarget, request.url);
@@ -63,7 +84,7 @@ export default async (request, context) => {
 
   const sourcePath = CLEAN_ROUTES[pathname];
   const response = sourcePath
-    ? await context.nextRequest(new Request(new URL(sourcePath, request.url), request))
+    ? await fetchStaticSource(request, sourcePath)
     : await context.next();
 
   const contentType = response.headers.get("content-type") || "";
