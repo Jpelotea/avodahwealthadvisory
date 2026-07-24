@@ -44,7 +44,7 @@ const LEGACY_REDIRECTS = {
   "/cookie-policy.html": "/cookies/",
 };
 
-const RELEASE_CANDIDATE_REVISION = "m7-analytics-v5";
+const RELEASE_CANDIDATE_REVISION = "m7-security-v4";
 const GA_MEASUREMENT_ID = "G-HV9X54P7NT";
 const productionCanonical = (path) => `https://avodahwealthadvisory.netlify.app${path}`;
 
