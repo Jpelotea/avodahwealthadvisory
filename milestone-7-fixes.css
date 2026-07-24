@@ -1,0 +1,69 @@
+/* Milestone 7: targeted browser-QA remediation. */
+
+/* Preserve readable contrast on dark launch sections. */
+.advisory-pathway-card .service-number,
+.home-checklist-card .section-kicker {
+  color: #ffffff;
+}
+
+.footer-grid-launch h2,
+.footer-grid-launch h3 {
+  color: #ffffff;
+}
+
+/* Prevent the 320 CSS-pixel viewport from inheriting the legacy minimum width. */
+html,
+body {
+  max-width: 100%;
+}
+
+body {
+  min-width: 0;
+}
+
+img,
+svg,
+video,
+canvas,
+iframe {
+  max-width: 100%;
+}
+
+.site-header,
+.avodah-footer,
+.footer-container,
+.footer-grid-launch,
+.container {
+  min-width: 0;
+}
+
+.footer-grid-launch a,
+.footer-grid-launch p,
+.footer-bottom-row,
+.brand,
+.nav a,
+.button {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 360px) {
+  .site-header {
+    gap: 8px;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .brand {
+    min-width: 0;
+    font-size: 0.86rem;
+  }
+
+  .brand-mark {
+    flex: 0 0 auto;
+  }
+
+  .footer-container,
+  .container {
+    width: min(100% - 24px, 1120px);
+  }
+}
