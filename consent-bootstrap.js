@@ -6,19 +6,6 @@
   const GA_MEASUREMENT_ID = "G-HV9X54P7NT";
   let analyticsLoaded = false;
 
-  window.dataLayer = window.dataLayer || [];
-  window.gtag = window.gtag || function gtag() {
-    window.dataLayer.push(arguments);
-  };
-
-  window.gtag("consent", "default", {
-    analytics_storage: "denied",
-    ad_storage: "denied",
-    ad_user_data: "denied",
-    ad_personalization: "denied",
-    wait_for_update: 500,
-  });
-
   const readPreferences = () => {
     try {
       const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
@@ -36,6 +23,22 @@
       return { essential: true, analytics: false, marketing: false, version: CONSENT_VERSION, saved_at: "" };
     }
   };
+
+  window.dataLayer = window.dataLayer || [];
+  window.gtag = function gtag() {
+    const args = Array.from(arguments);
+    if (args[0] === "event" && !readPreferences().analytics) return false;
+    window.dataLayer.push(args);
+    return true;
+  };
+
+  window.gtag("consent", "default", {
+    analytics_storage: "denied",
+    ad_storage: "denied",
+    ad_user_data: "denied",
+    ad_personalization: "denied",
+    wait_for_update: 500,
+  });
 
   const removeAnalyticsCookies = () => {
     document.cookie.split(";").forEach((cookie) => {
