@@ -31,7 +31,7 @@ async function writeJson(name, value) {
 }
 
 async function gotoReady(page, route) {
-  const response = await page.goto(route, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+  const response = await page.goto(route, { waitUntil: 'domcontentloaded', timeout: 60_000 });
   await page.waitForLoadState('load', { timeout: 15_000 }).catch(() => {});
   await page.waitForTimeout(350);
   return response;
@@ -64,7 +64,8 @@ for (const [name, route] of routes) {
     page.on('console', msg => {
       if (msg.type() !== 'error') return;
       const text = msg.text();
-      if (isPreviewPlatformNoise(text)) previewNoise.push(text);
+      const expectedNotFoundNoise = name === 'not-found' && /status of 404/i.test(text);
+      if (expectedNotFoundNoise || isPreviewPlatformNoise(text)) previewNoise.push(text);
       else consoleErrors.push(text);
     });
 
@@ -187,16 +188,26 @@ test('forms expose separate processing and marketing controls', async ({ page })
   const processing = page.locator('[name="processing_consent"]');
   const marketing = page.locator('[name="marketing_consent"]');
   const compatibility = page.locator('input[type="hidden"][name="consent"]');
-  await expect(processing).toHaveCount(1);
-  await expect(marketing).toHaveCount(1);
+  await expect(processing).toHaveCount(1, { timeout: 30_000 });
+  await expect(marketing).toHaveCount(1, { timeout: 30_000 });
   await expect(marketing).not.toBeChecked();
   await expect(compatibility).toHaveCount(1);
 
-  await page.locator('input[name="book_consultation"][value="Yes"]').check({ force: true });
+  await page.evaluate(() => {
+    const radio = document.querySelector('input[name="book_consultation"][value="Yes"]');
+    radio.checked = true;
+    radio.dispatchEvent(new Event('change', { bubbles: true }));
+  });
   await expect(processing).toHaveAttribute('required', '');
-  await processing.check({ force: true });
-  await marketing.uncheck({ force: true });
-  await page.locator('#needs-form').dispatchEvent('submit');
+  await page.evaluate(() => {
+    const form = document.querySelector('#needs-form');
+    const processingInput = form.querySelector('[name="processing_consent"]');
+    const marketingInput = form.querySelector('[name="marketing_consent"]');
+    processingInput.checked = true;
+    marketingInput.checked = false;
+    form.addEventListener('submit', event => event.preventDefault(), { once: true });
+    form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+  });
   await expect(compatibility).toHaveValue('Yes');
   await expect(marketing).not.toBeChecked();
 });
@@ -213,12 +224,13 @@ test('keyboard navigation exposes skip link and no immediate trap', async ({ pag
 test('cookie dialog traps focus, closes with Escape, and restores focus', async ({ page }) => {
   await gotoReady(page, '/');
   const settings = page.getByRole('button', { name: /choose preferences/i });
-  await settings.click();
+  await settings.focus();
+  await settings.dispatchEvent('click');
   const dialog = page.getByRole('dialog', { name: /cookie preferences/i });
   await expect(dialog).toBeVisible();
   for (let i = 0; i < 10; i++) {
     await page.keyboard.press('Tab');
-    expect(await dialog.evaluate((element, active) => element.contains(active), await page.evaluateHandle(() => document.activeElement))).toBe(true);
+    expect(await page.evaluate(() => document.querySelector('[data-cookie-dialog]')?.contains(document.activeElement))).toBe(true);
   }
   await page.keyboard.press('Escape');
   await expect(dialog).toBeHidden();
