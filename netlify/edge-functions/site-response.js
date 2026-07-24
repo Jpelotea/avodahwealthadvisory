@@ -42,8 +42,7 @@ const LEGACY_REDIRECTS = {
   "/cookie-policy.html": "/cookies/",
 };
 
-const INTERNAL_SOURCE_PARAMETER = "__avodah_static_source";
-const RELEASE_CANDIDATE_REVISION = "m7-static-fetch-v1";
+const RELEASE_CANDIDATE_REVISION = "m7-static-rewrite-v2";
 const productionCanonical = (path) => `https://avodahwealthadvisory.netlify.app${path}`;
 
 const normalizeRootDocumentUrls = (html) =>
@@ -53,26 +52,9 @@ const normalizeRootDocumentUrls = (html) =>
     return `${attribute}=${quote}/${trimmed}${quote}`;
   });
 
-const fetchStaticSource = async (request, sourcePath) => {
-  const sourceUrl = new URL(sourcePath, request.url);
-  sourceUrl.searchParams.set(INTERNAL_SOURCE_PARAMETER, "1");
-  return fetch(sourceUrl, {
-    method: "GET",
-    headers: {
-      accept: request.headers.get("accept") || "text/html",
-      "accept-language": request.headers.get("accept-language") || "en",
-    },
-    redirect: "follow",
-  });
-};
-
 export default async (request, context) => {
   const requestUrl = new URL(request.url);
   const pathname = requestUrl.pathname;
-
-  if (requestUrl.searchParams.get(INTERNAL_SOURCE_PARAMETER) === "1") {
-    return context.next();
-  }
 
   const redirectTarget = LEGACY_REDIRECTS[pathname];
   if (redirectTarget) {
@@ -81,10 +63,11 @@ export default async (request, context) => {
     return Response.redirect(target, 301);
   }
 
+  // Netlify evaluates the matching 200 rewrite after Edge middleware proceeds.
+  // This lets context.next() return the static source response while preserving
+  // the visitor-facing clean URL and avoids recursive same-site fetch chains.
   const sourcePath = CLEAN_ROUTES[pathname];
-  const response = sourcePath
-    ? await fetchStaticSource(request, sourcePath)
-    : await context.next();
+  const response = await context.next();
 
   const contentType = response.headers.get("content-type") || "";
   if (!contentType.includes("text/html")) return response;
@@ -106,7 +89,7 @@ export default async (request, context) => {
 
   const additions = [];
   if (!html.includes("/workflow.css")) additions.push('<link rel="stylesheet" href="/workflow.css?v=20260724-m4">');
-  if (!html.includes("/milestone-7-fixes.css")) additions.push('<link rel="stylesheet" href="/milestone-7-fixes.css?v=20260725-m7">');
+  if (!html.includes("/milestone-7-fixes.css")) additions.push('<link rel="stylesheet" href="/milestone-7-fixes.css?v=20260725-m7b">');
   if (!html.includes("/consent-bootstrap.js")) additions.push('<script src="/consent-bootstrap.js?v=20260724-m4"></script>');
   if (!html.includes("/site-shell.js")) additions.push('<script src="/site-shell.js?v=20260724-m4" defer></script>');
   if (!html.includes("/analytics.js")) additions.push('<script src="/analytics.js?v=20260724-m4" defer></script>');
