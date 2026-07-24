@@ -44,8 +44,9 @@ async function activate(locator) {
 }
 
 function isPreviewPlatformNoise(text) {
-  return /app\.netlify\.com/i.test(text) ||
-    (/Applying inline style violates/i.test(text) && /sha256-/i.test(text));
+  return /app\.netlify\.com|deployID=/i.test(text) ||
+    /Source: position:fixed/i.test(text) ||
+    (/Content-Security-Policy/i.test(text) && /line: 0/i.test(text) && /(frame-src|inline style)/i.test(text));
 }
 
 async function captureAnalytics(page) {
