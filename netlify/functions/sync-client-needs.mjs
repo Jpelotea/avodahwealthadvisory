@@ -43,6 +43,13 @@ const ATTRIBUTION_FIELDS = [
 const cleanAttribution = (value) =>
   clean(value).replace(/[|\r\n]+/g, " ").replace(/\s+/g, " ").slice(0, 500);
 
+const downstreamSyncAllowed = () => {
+  const context = clean(Netlify.env.get("CONTEXT")).toLowerCase();
+  const explicitSetting = clean(Netlify.env.get("AVODAH_DOWNSTREAM_FORM_SYNC_ENABLED")).toLowerCase();
+  if (context !== "production") return false;
+  return explicitSetting !== "false";
+};
+
 const buildAttributionPayload = (data, formName) => {
   const parts = ["form_name=" + cleanAttribution(formName || "unknown")];
   const leadSource = cleanAttribution(data.lead_source);
@@ -81,7 +88,7 @@ const buildClientNeedsRow = (data, submissionId, submittedAt, formName) => {
     clean(data.preferred_contact_method),
     clean(data.preferred_schedule),
     clean(data.additional_notes),
-    clean(data.consent),
+    clean(data.consent || data.processing_consent),
     "New",
     "",
     "",
@@ -113,7 +120,7 @@ const buildConsultationRow = (data, submissionId, submittedAt, formName) => {
     clean(data.preferred_contact_method),
     clean(data.preferred_schedule),
     clean(data.message),
-    clean(data.consent),
+    clean(data.consent || data.processing_consent),
     "New",
     "",
     "",
@@ -138,6 +145,11 @@ export default {
       (Boolean(clean(data.inquiry_type)) && Boolean(clean(data.full_name)));
 
     if (!isClientNeedsCheck && !isConsultation) return;
+
+    if (!downstreamSyncAllowed()) {
+      console.log("Skipped Avodah downstream form sync outside the production context.");
+      return;
+    }
 
     console.log("Received a verified Avodah website lead submission.");
 
@@ -167,28 +179,28 @@ export default {
       body: JSON.stringify({ secret: webhookSecret, row }),
     });
 
-   const result = await response.json().catch(() => ({
-  ok: false,
-  code: "INVALID_RESPONSE",
-  error: "Apps Script returned invalid JSON",
-}));
+    const result = await response.json().catch(() => ({
+      ok: false,
+      code: "INVALID_RESPONSE",
+      error: "Apps Script returned invalid JSON",
+    }));
 
-if (!response.ok || !result.ok) {
-  console.error(
-    "Google Sheets sync response:",
-    JSON.stringify({
-      http_status: response.status,
-      code: result.code || "UNKNOWN",
-      error: result.error || "Unknown Apps Script error",
-    })
-  );
+    if (!response.ok || !result.ok) {
+      console.error(
+        "Google Sheets sync response:",
+        JSON.stringify({
+          http_status: response.status,
+          code: result.code || "UNKNOWN",
+          error: result.error || "Unknown Apps Script error",
+        }),
+      );
 
-  throw new Error(
-    `Google Sheets sync failed: ${result.code || "UNKNOWN"} - ${
-      result.error || `HTTP ${response.status}`
-    }`
-  );
-}
+      throw new Error(
+        `Google Sheets sync failed: ${result.code || "UNKNOWN"} - ${
+          result.error || `HTTP ${response.status}`
+        }`,
+      );
+    }
 
     console.log(`Synced Avodah website lead ${submissionId} from ${formName || "verified form"}.`);
   },
