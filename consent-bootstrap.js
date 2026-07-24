@@ -2,13 +2,15 @@
   "use strict";
 
   const STORAGE_KEY = "avodahCookiePreferences";
+  const LEGACY_STORAGE_KEY = "avodah_cookie_preferences";
   const CONSENT_VERSION = "cookie-consent-v2-2026-07-24";
   const GA_MEASUREMENT_ID = "G-HV9X54P7NT";
   let analyticsLoaded = false;
 
   const readPreferences = () => {
     try {
-      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+      const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY) || "null";
+      const saved = JSON.parse(raw);
       if (!saved || saved.version !== CONSENT_VERSION) {
         return { essential: true, analytics: false, marketing: false, version: CONSENT_VERSION, saved_at: "" };
       }
