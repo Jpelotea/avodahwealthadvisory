@@ -81,6 +81,7 @@ export default async (request, context) => {
   if (!html.includes("/site-shell.js")) additions.push('<script src="/site-shell.js?v=20260724-m4" defer></script>');
   if (!html.includes("/analytics.js")) additions.push('<script src="/analytics.js?v=20260724-m4" defer></script>');
   if (!html.includes("/cookie-preferences.js")) additions.push('<script src="/cookie-preferences.js?v=20260724-m4" defer></script>');
+  if (pathname === "/consultation/" && !html.includes("/needs-check-consent.js")) additions.push('<script src="/needs-check-consent.js?v=20260724-m4" defer></script>');
 
   if (nonProduction) {
     html = html.replace(/<meta\b[^>]*name=["']robots["'][^>]*>/gi, "");
