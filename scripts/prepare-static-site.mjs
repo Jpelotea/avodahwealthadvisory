@@ -47,4 +47,13 @@ for (const file of files) {
   console.log(`Removed ${removed} legacy analytics script(s) from ${file}.`);
 }
 
+const revision = String(process.env.COMMIT_REF || process.env.GITHUB_SHA || 'local');
+const deployContext = String(process.env.CONTEXT || 'local');
+await writeFile(
+  path.join(ROOT, 'rc-revision.json'),
+  `${JSON.stringify({ revision, deployContext }, null, 2)}\n`,
+  'utf8',
+);
+
 console.log(`Static-site preparation complete. Removed ${totalRemoved} legacy analytics script(s).`);
+console.log(`Wrote rc-revision.json for ${revision} (${deployContext}).`);
