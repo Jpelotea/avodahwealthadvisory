@@ -2,24 +2,12 @@ name: Milestone 7 Isolated Form Fixture Deploy
 
 on:
   workflow_dispatch:
-  push:
-    branches: [agent/blueprint-foundation]
-    paths:
-      - qa/form-fixture/**
-      - .github/workflows/milestone-7-form-fixture-deploy.yml
-  pull_request:
-    branches: [main]
-    types: [opened, synchronize, reopened]
-    paths:
-      - qa/form-fixture/**
-      - .github/workflows/milestone-7-form-fixture-deploy.yml
 
 permissions:
   contents: read
 
 jobs:
   deploy-isolated-form-fixture:
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
