@@ -1,0 +1,82 @@
+name: Milestone 7 Isolated Form Fixture Deploy
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/blueprint-foundation]
+    paths:
+      - qa/form-fixture/**
+      - .github/workflows/milestone-7-form-fixture-deploy.yml
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-isolated-form-fixture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_FORM_TEST_AUTH_TOKEN }}
+      NETLIFY_SITE_ID: ${{ secrets.NETLIFY_FORM_TEST_SITE_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify isolated test credentials
+        shell: bash
+        run: |
+          missing=0
+          if [ -z "${NETLIFY_AUTH_TOKEN:-}" ]; then
+            echo "::error::Missing GitHub Actions secret NETLIFY_FORM_TEST_AUTH_TOKEN"
+            missing=1
+          fi
+          if [ -z "${NETLIFY_SITE_ID:-}" ]; then
+            echo "::error::Missing GitHub Actions secret NETLIFY_FORM_TEST_SITE_ID"
+            missing=1
+          fi
+          exit "$missing"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Verify fixture contains no executable integrations
+        run: |
+          test -f qa/form-fixture/index.html
+          test -f qa/form-fixture/confirmation.html
+          test -f qa/form-fixture/_headers
+          if find qa/form-fixture -type f \( -name '*.js' -o -name '*.mjs' -o -name '*.ts' \) | grep -q .; then
+            echo "::error::Executable integration file found in isolated fixture"
+            exit 1
+          fi
+          if grep -RniE 'GOOGLE_SHEETS_WEBHOOK|Apps Script|script\.google\.com|calendar\.google|meet\.google|Operations Hub|G-[A-Z0-9]{6,}|facebook\.com/tr' qa/form-fixture; then
+            echo "::error::Potential production integration identifier found in isolated fixture"
+            exit 1
+          fi
+
+      - name: Deploy only the isolated form fixture
+        run: |
+          npx --yes netlify-cli@latest deploy \
+            --dir=qa/form-fixture \
+            --site="$NETLIFY_SITE_ID" \
+            --auth="$NETLIFY_AUTH_TOKEN" \
+            --prod \
+            --message="Milestone 7 isolated form fixture ${GITHUB_SHA}" \
+            --json > isolated-form-deploy.json
+          node -e '
+            const fs = require("fs");
+            const d = JSON.parse(fs.readFileSync("isolated-form-deploy.json", "utf8"));
+            const safe = { deploy_id: d.deploy_id || d.deployId, url: d.url, deploy_url: d.deploy_url || d.deployUrl, logs: d.logs };
+            fs.writeFileSync("isolated-form-deploy-safe.json", JSON.stringify(safe, null, 2));
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Isolated form fixture\n\n- URL: ${safe.url || "unknown"}\n- Immutable URL: ${safe.deploy_url || "unknown"}\n- Deploy ID: ${safe.deploy_id || "unknown"}\n`);
+          '
+
+      - name: Upload isolated deployment evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: milestone-7-isolated-form-deploy-${{ github.sha }}
+          path: |
+            isolated-form-deploy-safe.json
+            qa/form-fixture
+          if-no-files-found: warn
+          retention-days: 30
