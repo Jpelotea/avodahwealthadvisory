@@ -1,4 +1,4 @@
-name: Milestone 6 Browser QA
+name: Milestone 7 Browser QA and Performance
 
 on:
   push:
@@ -11,12 +11,17 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: milestone-7-qa-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  PLAYWRIGHT_BASE_URL: https://deploy-preview-8--avodahwealthadvisory.netlify.app
+
 jobs:
-  browser-qa:
+  synchronization-isolation:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
-    env:
-      PLAYWRIGHT_BASE_URL: https://deploy-preview-8--avodahwealthadvisory.netlify.app
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -25,8 +30,32 @@ jobs:
       - run: npm install --no-audit --no-fund
       - name: Run synchronization isolation unit tests
         run: npm run test:unit
-      - run: npx playwright install --with-deps chromium firefox webkit
-      - name: Wait for non-production Deploy Preview
+      - name: Upload synchronization test output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: milestone-7-sync-isolation-${{ github.sha }}
+          path: test-results/unit
+          if-no-files-found: ignore
+          retention-days: 30
+
+  browser-qa:
+    needs: synchronization-isolation
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - name: Install ${{ matrix.browser }} browser
+        run: npx playwright install --with-deps ${{ matrix.browser }}
+      - name: Wait for matching protected Deploy Preview
         run: |
           for i in {1..30}; do
             headers=$(mktemp)
@@ -38,15 +67,90 @@ jobs:
           done
           echo "Deploy Preview did not become ready with noindex protection."
           exit 1
-      - name: Run browser QA
-        run: npm run test:e2e
-      - name: Upload QA evidence
+      - name: Run ${{ matrix.browser }} browser QA
+        run: npm run test:e2e -- --project=${{ matrix.browser }}
+      - name: Upload ${{ matrix.browser }} QA evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: milestone-6-browser-qa-${{ github.sha }}
+          name: milestone-7-${{ matrix.browser }}-qa-${{ github.sha }}
           path: |
             playwright-report
             test-results
+          if-no-files-found: warn
+          retention-days: 30
+
+  performance:
+    needs: synchronization-isolation
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - name: Install Chromium for Lighthouse
+        run: npx playwright install --with-deps chromium
+      - name: Wait for matching protected Deploy Preview
+        run: |
+          for i in {1..30}; do
+            headers=$(mktemp)
+            code=$(curl -sS -D "$headers" -o /dev/null -w '%{http_code}' "$PLAYWRIGHT_BASE_URL" || true)
+            robots=$(awk 'BEGIN{IGNORECASE=1} /^x-robots-tag:/ {sub(/^[^:]+:[[:space:]]*/, ""); print}' "$headers" | tr -d '\r')
+            rm -f "$headers"
+            if [ "$code" = "200" ] && echo "$robots" | grep -qi 'noindex'; then exit 0; fi
+            sleep 10
+          done
+          exit 1
+      - name: Run Lighthouse on priority workflows
+        shell: bash
+        run: |
+          mkdir -p test-results/lighthouse
+          CHROME_PATH=$(node -e "console.log(require('playwright').chromium.executablePath())")
+          export CHROME_PATH
+          declare -A pages=(
+            [homepage]="/"
+            [consultation]="/consultation/"
+            [client-support]="/client-support/"
+            [recruitment-application]="/careers/apply/"
+          )
+          for name in homepage consultation client-support recruitment-application; do
+            npx --yes lighthouse@latest "${PLAYWRIGHT_BASE_URL}${pages[$name]}" \
+              --chrome-path="$CHROME_PATH" \
+              --chrome-flags="--headless --no-sandbox" \
+              --only-categories=performance,accessibility,best-practices,seo \
+              --output=json --output=html \
+              --output-path="test-results/lighthouse/$name" \
+              --quiet
+          done
+          node - <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+          const directory = 'test-results/lighthouse';
+          const reports = fs.readdirSync(directory).filter(name => name.endsWith('.report.json'));
+          const summary = reports.map(file => {
+            const report = JSON.parse(fs.readFileSync(path.join(directory, file), 'utf8'));
+            const a = report.audits;
+            return {
+              page: file.replace('.report.json', ''),
+              finalUrl: report.finalUrl,
+              scores: Object.fromEntries(Object.entries(report.categories).map(([key, value]) => [key, Math.round((value.score || 0) * 100)])),
+              metrics: {
+                largestContentfulPaintMs: a['largest-contentful-paint']?.numericValue,
+                cumulativeLayoutShift: a['cumulative-layout-shift']?.numericValue,
+                totalBlockingTimeMs: a['total-blocking-time']?.numericValue,
+                speedIndexMs: a['speed-index']?.numericValue,
+              }
+            };
+          });
+          fs.writeFileSync(path.join(directory, 'summary.json'), JSON.stringify(summary, null, 2));
+          NODE
+      - name: Upload Lighthouse evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: milestone-7-lighthouse-${{ github.sha }}
+          path: test-results/lighthouse
           if-no-files-found: warn
           retention-days: 30
