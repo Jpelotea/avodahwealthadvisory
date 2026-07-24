@@ -42,7 +42,7 @@ const LEGACY_REDIRECTS = {
   "/cookie-policy.html": "/cookies/",
 };
 
-const RELEASE_CANDIDATE_REVISION = "m7-consent-v3";
+const RELEASE_CANDIDATE_REVISION = "m7-security-v4";
 const productionCanonical = (path) => `https://avodahwealthadvisory.netlify.app${path}`;
 
 const normalizeRootDocumentUrls = (html) =>
@@ -76,10 +76,9 @@ export default async (request, context) => {
   const deployContext = Netlify.env.get("CONTEXT") || "";
   const nonProduction = deployContext === "branch-deploy" || deployContext === "deploy-preview";
 
-  html = html
-    .replace(/<script\b[^>]*src=["']https:\/\/www\.googletagmanager\.com\/gtag\/js[^"']*["'][^>]*><\/script>/gi, "")
-    .replace(/<script>\s*window\.dataLayer\s*=\s*window\.dataLayer\s*\|\|\s*\[\][\s\S]*?gtag\(['"]config['"][\s\S]*?<\/script>/gi, "");
-
+  // Optional analytics are loaded only by consent-bootstrap.js. No legacy
+  // analytics snippet remains in the static source, so no HTML string
+  // sanitization is performed here.
   if (sourcePath) {
     html = normalizeRootDocumentUrls(html);
     const canonical = productionCanonical(pathname);
