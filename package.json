@@ -2,6 +2,7 @@
   "name": "avodah-website-qa",
   "private": true,
   "scripts": {
+    "test": "node --test tests/unit/*.test.mjs",
     "test:e2e": "playwright test"
   },
   "devDependencies": {
