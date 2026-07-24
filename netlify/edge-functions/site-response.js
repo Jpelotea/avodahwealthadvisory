@@ -1,4 +1,4 @@
-import { parse, serialize } from "npm:parse5@8.0.0";
+import { parse, serialize } from "parse5";
 
 const CLEAN_ROUTES = {
   "/about/": "/about.html",
