@@ -22,7 +22,7 @@ The safest initial implementation strategy is progressive enhancement rather tha
 - Existing Google Calendar and Google Meet booking integration.
 - Existing UTM and Facebook attribution capture.
 - Existing static assets, approved brand colors, typography, and public contact information.
-- Existing SEO metadata, sitemap, robots configuration, and JSON-LD where accurate.
+- Existing SEO metadata, sitemap, robots configuration, JSON-LD, and the existing 404 page where accurate.
 
 ### Refactor
 
@@ -57,9 +57,9 @@ The safest initial implementation strategy is progressive enhancement rather tha
 | Client-support workflow | Missing | Build | Launch |
 | General inquiry routing | Partial | Refactor | Launch |
 | Workflow-specific confirmation pages | Partial | Build | Launch |
-| Cookie notice / preference handling | Missing | Build after tracking decision | Launch |
-| 404 page | Missing | Build | Launch |
-| Temporary system-error page | Missing | Build | Launch |
+| Cookie notice / preference handling | Notice added on development branch; preference control pending | Complete after tracking decision | Launch |
+| 404 page | Exists | Retain and improve if needed | Launch |
+| Temporary system-error page | Added on development branch | Connect to workflow failures | Launch |
 | Financial education hub | Partial via checklists and service content | Expand | Launch |
 | Articles / blog | Missing or incomplete | Build content structure | Launch |
 | FAQ page | Partial on homepage | Build dedicated page | Launch |
@@ -80,6 +80,7 @@ The safest initial implementation strategy is progressive enhancement rather tha
 - The production deployment contains redirect and security-header rules.
 - The site includes a skip link, semantic navigation, mobile-menu behavior, field-level validation, FAQ interaction, GA4 tracking, and UTM attribution.
 - Consultation submissions are connected to the existing lead pipeline and can activate optional booking.
+- An existing 404 page already provides recovery links.
 
 ## Critical assumptions requiring approval
 
@@ -144,7 +145,7 @@ This structure can be introduced progressively without breaking existing root-le
 
 1. Protect production with a dedicated development branch.
 2. Document retain/refactor/replace decisions and assumptions.
-3. Add missing 404, temporary system-error, and cookie-information pages.
+3. Retain the existing 404 page and add the missing temporary system-error and cookie-information pages.
 4. Establish shared launch navigation and legal pathways without removing current routes.
 5. Prepare the next workflow milestone: client support and recruitment structures using non-sensitive fields first.
 6. Validate through a Netlify preview before any production merge.
