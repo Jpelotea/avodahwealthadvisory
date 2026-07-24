@@ -1,23 +1,30 @@
 /* Milestone 7: targeted browser-QA remediation. */
 
-/* Preserve readable contrast on dark launch sections. */
-.advisory-pathway-card .service-number,
-.home-checklist-card .section-kicker {
-  color: #ffffff;
+/* Win over the legacy visibility guard's high-specificity !important rules. */
+body .advisory-pathways-home .advisory-pathway-card .service-number,
+body .home-checklist-card .section-kicker {
+  color: #ffffff !important;
 }
 
-.footer-grid-launch h2,
-.footer-grid-launch h3 {
-  color: #ffffff;
+body .avodah-footer .footer-grid-launch h2,
+body .avodah-footer .footer-grid-launch h3 {
+  color: #ffffff !important;
 }
 
-/* Prevent the 320 CSS-pixel viewport from inheriting the legacy minimum width. */
+/* Preserve reflow at 320 CSS pixels without clipping essential controls. */
 html,
 body {
-  max-width: 100%;
+  min-width: 0 !important;
+  max-width: 100% !important;
 }
 
-body {
+html {
+  overflow-x: clip;
+}
+
+*,
+*::before,
+*::after {
   min-width: 0;
 }
 
@@ -25,7 +32,14 @@ img,
 svg,
 video,
 canvas,
-iframe {
+iframe,
+table,
+form,
+fieldset,
+input,
+select,
+textarea,
+button {
   max-width: 100%;
 }
 
@@ -33,8 +47,16 @@ iframe {
 .avodah-footer,
 .footer-container,
 .footer-grid-launch,
-.container {
-  min-width: 0;
+.footer-bottom-row,
+.container,
+.intake-shell,
+.intake-card,
+.workflow-shell,
+.workflow-card,
+.booking-widget,
+.booking-panel {
+  min-width: 0 !important;
+  max-width: 100%;
 }
 
 .footer-grid-launch a,
@@ -42,11 +64,15 @@ iframe {
 .footer-bottom-row,
 .brand,
 .nav a,
-.button {
+.button,
+.workflow-reference,
+.confirmation-reference,
+.booking-success {
   overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
-@media (max-width: 360px) {
+@media (max-width: 420px) {
   .site-header {
     gap: 8px;
     padding-left: 12px;
@@ -55,6 +81,7 @@ iframe {
 
   .brand {
     min-width: 0;
+    max-width: calc(100% - 52px);
     font-size: 0.86rem;
   }
 
@@ -62,8 +89,30 @@ iframe {
     flex: 0 0 auto;
   }
 
+  .brand > span:last-child {
+    overflow-wrap: anywhere;
+  }
+
   .footer-container,
   .container {
     width: min(100% - 24px, 1120px);
+  }
+
+  .form-grid,
+  .launch-pathway-grid,
+  .footer-grid-launch,
+  .confirmation-actions,
+  .form-actions {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .confirmation-actions,
+  .form-actions {
+    align-items: stretch;
+  }
+
+  .confirmation-actions .button,
+  .form-actions .button {
+    width: 100%;
   }
 }
