@@ -43,6 +43,7 @@ const LEGACY_REDIRECTS = {
 };
 
 const INTERNAL_SOURCE_PARAMETER = "__avodah_static_source";
+const RELEASE_CANDIDATE_REVISION = "m7-static-fetch-v1";
 const productionCanonical = (path) => `https://avodahwealthadvisory.netlify.app${path}`;
 
 const normalizeRootDocumentUrls = (html) =>
@@ -69,8 +70,6 @@ export default async (request, context) => {
   const requestUrl = new URL(request.url);
   const pathname = requestUrl.pathname;
 
-  // A guarded internal request retrieves the underlying static HTML without
-  // re-running clean-route redirects or response transformation recursively.
   if (requestUrl.searchParams.get(INTERNAL_SOURCE_PARAMETER) === "1") {
     return context.next();
   }
@@ -125,6 +124,7 @@ export default async (request, context) => {
   headers.delete("content-length");
   if (nonProduction) headers.set("x-robots-tag", "noindex, nofollow, noarchive");
   headers.set("x-avodah-deploy-context", deployContext || "unknown");
+  headers.set("x-avodah-rc-revision", RELEASE_CANDIDATE_REVISION);
 
   return new Response(html, {
     status: response.status,
