@@ -3,6 +3,9 @@ name: Milestone 6 Browser QA
 on:
   push:
     branches: [agent/blueprint-foundation]
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
   workflow_dispatch:
 
 permissions:
@@ -19,16 +22,21 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
       - run: npm install --no-audit --no-fund
+      - name: Run synchronization isolation unit tests
+        run: npm run test:unit
       - run: npx playwright install --with-deps chromium firefox webkit
-      - name: Wait for matching preview
+      - name: Wait for non-production Deploy Preview
         run: |
           for i in {1..30}; do
-            code=$(curl -sS -o /dev/null -w '%{http_code}' "$PLAYWRIGHT_BASE_URL" || true)
-            if [ "$code" = "200" ]; then exit 0; fi
+            headers=$(mktemp)
+            code=$(curl -sS -D "$headers" -o /dev/null -w '%{http_code}' "$PLAYWRIGHT_BASE_URL" || true)
+            robots=$(awk 'BEGIN{IGNORECASE=1} /^x-robots-tag:/ {sub(/^[^:]+:[[:space:]]*/, ""); print}' "$headers" | tr -d '\r')
+            rm -f "$headers"
+            if [ "$code" = "200" ] && echo "$robots" | grep -qi 'noindex'; then exit 0; fi
             sleep 10
           done
+          echo "Deploy Preview did not become ready with noindex protection."
           exit 1
       - name: Run browser QA
         run: npm run test:e2e
@@ -40,4 +48,5 @@ jobs:
           path: |
             playwright-report
             test-results
+          if-no-files-found: warn
           retention-days: 30
