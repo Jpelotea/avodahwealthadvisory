@@ -82,3 +82,17 @@ test('synthetic harness accepts canonical Netlify confirmation routes and isolat
   assert.match(entrypoint,/run-isolated-form-submissions-v2\.mjs/);
   assert.match(runner,/test-isolated-form-submissions-v2\.part-01\.mjs/);
 });
+
+test('synthetic harness paces each form, records navigation duplicates, and cleans before continuing', async () => {
+  const harness=(await Promise.all(syntheticHarnessParts.map(part=>readFile(part,'utf8')))).join('');
+  assert.match(harness,/SYNTHETIC_FORM_COOLDOWN_MS/);
+  assert.match(harness,/function syntheticEmail\(marker\)/);
+  assert.match(harness,/exerciseNavigation: true/);
+  assert.match(harness,/resubmissionObserved: postsAfterRefresh > postsAfterSubmit/);
+  assert.match(harness,/actual Netlify refresh behavior documented/);
+  assert.match(harness,/matchingStoredSubmissions/);
+  assert.match(harness,/await cleanupSyntheticRecords\(\);\s*pendingValid\.length = 0;/s);
+  assert.match(harness,/if \(formIndex < formNames\.length - 1\) await sleep\(perFormCooldownMs\)/);
+  assert.doesNotMatch(harness,/postsAfterRefresh === 1/);
+  assert.doesNotMatch(harness,/postsAfterNavigation === 1/);
+});
