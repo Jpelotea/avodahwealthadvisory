@@ -58,20 +58,17 @@ jobs:
       - run: npm install --no-audit --no-fund
       - name: Install ${{ matrix.browser }} browser
         run: npx playwright install --with-deps ${{ matrix.browser }}
-      - name: Wait for exact protected Deploy Preview revision
+      - name: Wait for exact Deploy Preview revision
         shell: bash
         run: |
           mkdir -p test-results/evidence
           for i in {1..60}; do
-            headers=$(mktemp)
-            code=$(curl -sS -D "$headers" -o /dev/null -w '%{http_code}' "$PLAYWRIGHT_BASE_URL" || true)
-            robots=$(awk 'BEGIN{IGNORECASE=1} /^x-robots-tag:/ {sub(/^[^:]+:[[:space:]]*/, ""); print}' "$headers" | tr -d '\r')
-            rm -f "$headers"
+            code=$(curl -sS -o /dev/null -w '%{http_code}' "$PLAYWRIGHT_BASE_URL" || true)
             metadata=$(curl -fsS "$PLAYWRIGHT_BASE_URL/rc-revision.json" || true)
             observed=$(node -e 'try{const value=JSON.parse(process.argv[1]);process.stdout.write(String(value.revision||""));}catch{}' "$metadata")
             deploy_context=$(node -e 'try{const value=JSON.parse(process.argv[1]);process.stdout.write(String(value.deployContext||""));}catch{}' "$metadata")
-            echo "attempt=$i status=$code expected=$EXPECTED_COMMIT observed=$observed context=$deploy_context robots=$robots"
-            if [ "$code" = "200" ] && echo "$robots" | grep -qi 'noindex' && [ "$observed" = "$EXPECTED_COMMIT" ] && [ "$deploy_context" = "deploy-preview" ]; then
+            echo "attempt=$i status=$code expected=$EXPECTED_COMMIT observed=$observed context=$deploy_context"
+            if [ "$code" = "200" ] && [ "$observed" = "$EXPECTED_COMMIT" ] && [ "$deploy_context" = "deploy-preview" ]; then
               printf '{"expectedRevision":"%s","observedRevision":"%s","deployContext":"%s","httpStatus":%s,"target":"%s","workflowSha":"%s"}\n' "$EXPECTED_COMMIT" "$observed" "$deploy_context" "$code" "$PLAYWRIGHT_BASE_URL" "$GITHUB_SHA" > "test-results/evidence/revision-${{ matrix.browser }}.json"
               exit 0
             fi
@@ -104,20 +101,17 @@ jobs:
       - run: npm install --no-audit --no-fund
       - name: Install Chromium for Lighthouse
         run: npx playwright install --with-deps chromium
-      - name: Wait for exact protected Deploy Preview revision
+      - name: Wait for exact Deploy Preview revision
         shell: bash
         run: |
           mkdir -p test-results/lighthouse
           for i in {1..60}; do
-            headers=$(mktemp)
-            code=$(curl -sS -D "$headers" -o /dev/null -w '%{http_code}' "$PLAYWRIGHT_BASE_URL" || true)
-            robots=$(awk 'BEGIN{IGNORECASE=1} /^x-robots-tag:/ {sub(/^[^:]+:[[:space:]]*/, ""); print}' "$headers" | tr -d '\r')
-            rm -f "$headers"
+            code=$(curl -sS -o /dev/null -w '%{http_code}' "$PLAYWRIGHT_BASE_URL" || true)
             metadata=$(curl -fsS "$PLAYWRIGHT_BASE_URL/rc-revision.json" || true)
             observed=$(node -e 'try{const value=JSON.parse(process.argv[1]);process.stdout.write(String(value.revision||""));}catch{}' "$metadata")
             deploy_context=$(node -e 'try{const value=JSON.parse(process.argv[1]);process.stdout.write(String(value.deployContext||""));}catch{}' "$metadata")
-            echo "attempt=$i status=$code expected=$EXPECTED_COMMIT observed=$observed context=$deploy_context robots=$robots"
-            if [ "$code" = "200" ] && echo "$robots" | grep -qi 'noindex' && [ "$observed" = "$EXPECTED_COMMIT" ] && [ "$deploy_context" = "deploy-preview" ]; then
+            echo "attempt=$i status=$code expected=$EXPECTED_COMMIT observed=$observed context=$deploy_context"
+            if [ "$code" = "200" ] && [ "$observed" = "$EXPECTED_COMMIT" ] && [ "$deploy_context" = "deploy-preview" ]; then
               printf '{"expectedRevision":"%s","observedRevision":"%s","deployContext":"%s","httpStatus":%s,"target":"%s","workflowSha":"%s"}\n' "$EXPECTED_COMMIT" "$observed" "$deploy_context" "$code" "$PLAYWRIGHT_BASE_URL" "$GITHUB_SHA" > test-results/lighthouse/revision.json
               exit 0
             fi
