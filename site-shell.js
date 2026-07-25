@@ -42,13 +42,35 @@
     </footer>`;
 
   const ensureSkipLink = () => {
-    if (!document.querySelector('.skip-link[href="#main"]')) document.body.insertAdjacentHTML("afterbegin", '<a class="skip-link" href="#main">Skip to main content</a>');
+    let links = [...document.querySelectorAll(".skip-link")];
+    if (!links.length) {
+      const main = document.querySelector("main");
+      if (!main) return;
+      if (!main.id) main.id = "main";
+      document.body.insertAdjacentHTML("afterbegin", `<a class="skip-link" href="#${main.id}">Skip to main content</a>`);
+      links = [...document.querySelectorAll(".skip-link")];
+    }
+
+    let navigation = document.querySelector("[data-skip-navigation]");
+    if (!navigation && links.length) {
+      navigation = document.createElement("nav");
+      navigation.className = "skip-navigation";
+      navigation.dataset.skipNavigation = "true";
+      navigation.setAttribute("aria-label", "Skip links");
+      links[0].before(navigation);
+    }
+    links.forEach((link) => navigation?.append(link));
   };
 
   const ensureHeader = () => {
     let header = document.querySelector(".site-header");
     if (!header) {
-      const skip = document.querySelector(".skip-link");
+      const specializedHeader = document.querySelector("header");
+      if (specializedHeader) {
+        specializedHeader.dataset.globalHeader = "true";
+        return specializedHeader;
+      }
+      const skip = document.querySelector("[data-skip-navigation], .skip-link");
       if (skip) skip.insertAdjacentHTML("afterend", headerMarkup);
       else document.body.insertAdjacentHTML("afterbegin", headerMarkup);
       header = document.querySelector(".site-header");
