@@ -69,6 +69,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_COMMIT }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -90,7 +92,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: milestone-9-sync-build-${{ github.event.pull_request.head.sha || github.sha }}
+          name: milestone-9-sync-build-${{ env.EXPECTED_COMMIT }}
           path: |
             rc-revision.json
             _headers
@@ -108,6 +110,8 @@ jobs:
     timeout-minutes: 50
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_COMMIT }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -116,7 +120,7 @@ jobs:
         run: npx playwright install --with-deps ${{ matrix.browser }}
       - name: Verify exact deployed revision and protected preview
         env:
-          GATE_OUTPUT: test-results/evidence/release-gate-${{ matrix.browser }}.json
+          GATE_OUTPUT_KEY: browser
         run: node scripts/verify-release-gate.mjs
       - name: Run ${{ matrix.browser }} browser QA
         run: npm run test:e2e -- --project=${{ matrix.browser }}
@@ -124,7 +128,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: milestone-9-${{ matrix.browser }}-qa-${{ github.event.pull_request.head.sha || github.sha }}
+          name: milestone-9-${{ matrix.browser }}-qa-${{ env.EXPECTED_COMMIT }}
           path: |
             playwright-report
             test-results
@@ -137,6 +141,8 @@ jobs:
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_COMMIT }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -145,7 +151,7 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Verify exact deployed revision and protected preview
         env:
-          GATE_OUTPUT: test-results/lighthouse/release-gate.json
+          GATE_OUTPUT_KEY: lighthouse
         run: node scripts/verify-release-gate.mjs
       - name: Run Lighthouse on priority workflows
         shell: bash
@@ -199,7 +205,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: milestone-9-lighthouse-${{ github.event.pull_request.head.sha || github.sha }}
+          name: milestone-9-lighthouse-${{ env.EXPECTED_COMMIT }}
           path: test-results/lighthouse
           if-no-files-found: warn
           retention-days: 30
