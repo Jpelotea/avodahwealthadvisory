@@ -51,7 +51,7 @@ test('every route waits for the protected release marker and tall screenshots ar
   const source = await readSource('tests/e2e/release-candidate.spec.mjs');
   assert.match(source, /headers\['x-avodah-rc-revision'\] === EXPECTED_MARKER/);
   assert.match(source, /headers\['x-avodah-deploy-context'\] === 'deploy-preview'/);
+  assert.match(source, /dimensions\.height <= 30_000/);
   assert.match(source, /maxSegmentHeight = 16_000/);
   assert.match(source, /segmentCount/);
-  assert.match(source, /Cannot take screenshot larger than 32767 pixels/);
 });
