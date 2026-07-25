@@ -5,6 +5,8 @@ import path from 'node:path';
 
 const CONSENT_STORAGE_KEY = 'avodah_cookie_preferences';
 const EXPECTED_MARKER = process.env.EXPECTED_RC_REVISION || 'm9-definitive-evidence-v1';
+const EXPECTED_COMMIT = process.env.EXPECTED_COMMIT || '';
+const WORKFLOW_RUN_ID = process.env.GITHUB_RUN_ID || '';
 const routes = [
   ['home', '/'], ['consultation', '/consultation/'], ['consultation-confirmation', '/consultation/confirmation/'],
   ['booking-confirmation', '/consultation/booking-confirmation/'], ['client-support', '/client-support/'],
@@ -32,6 +34,9 @@ const netlifyDrawerStyleHashes = [
   'sha256-ikgYIuM/1wkyZ+w23wP7pGyeh3RzH5XDMS3MqR2mWrY=',
 ];
 const webkitDrawerStyleMessage = "Refused to apply a stylesheet because its hash, its nonce, or 'unsafe-inline' does not appear in the style-src directive of the Content Security Policy.";
+const DEFAULT_FULL_PAGE_SCREENSHOT_LIMIT = 30_000;
+const DEFAULT_SEGMENT_HEIGHT = 16_000;
+const WEBKIT_SAFE_SEGMENT_HEIGHT = 12_000;
 let routeVerificationSequence = 0;
 
 async function writeJson(name, value) {
@@ -321,11 +326,14 @@ async function capturePageScreenshots(page, directory, name, testInfo) {
     width: Math.max(document.documentElement.scrollWidth, document.documentElement.clientWidth),
     height: Math.max(document.documentElement.scrollHeight, document.body?.scrollHeight || 0, document.documentElement.clientHeight),
   }));
-  const maxSegmentHeight = 16_000;
-  if (dimensions.height <= 30_000) {
+  const isWebKit = testInfo.project.name === 'webkit';
+  const fullPageLimit = isWebKit ? WEBKIT_SAFE_SEGMENT_HEIGHT : DEFAULT_FULL_PAGE_SCREENSHOT_LIMIT;
+  const maxSegmentHeight = isWebKit ? WEBKIT_SAFE_SEGMENT_HEIGHT : DEFAULT_SEGMENT_HEIGHT;
+  if (dimensions.height <= fullPageLimit) {
+    expect(dimensions.height, `${name} full-page screenshot exceeds the safe ${testInfo.project.name} limit`).toBeLessThanOrEqual(fullPageLimit);
     const filename = `${name}.png`;
     await page.screenshot({ path: `${directory}/${filename}`, fullPage: true, animations: 'disabled' });
-    return [{ filename: `${testInfo.project.name}/${path.basename(directory)}/${filename}`, segment: 1, segmentCount: 1, y: 0, height: dimensions.height }];
+    return [{ filename: `${testInfo.project.name}/${path.basename(directory)}/${filename}`, segment: 1, segmentCount: 1, y: 0, height: dimensions.height, safeSegmentLimit: fullPageLimit }];
   }
 
   const segments = [];
@@ -334,12 +342,13 @@ async function capturePageScreenshots(page, directory, name, testInfo) {
     const y = index * maxSegmentHeight;
     const segmentHeight = Math.min(maxSegmentHeight, dimensions.height - y);
     const filename = `${name}-part-${index + 1}-of-${count}.png`;
+    expect(segmentHeight, `${filename} exceeds the safe ${testInfo.project.name} segment limit`).toBeLessThanOrEqual(maxSegmentHeight);
     await page.screenshot({
       path: `${directory}/${filename}`,
       clip: { x: 0, y, width: Math.min(dimensions.width, page.viewportSize().width), height: segmentHeight },
       animations: 'disabled',
     });
-    segments.push({ filename: `${testInfo.project.name}/${path.basename(directory)}/${filename}`, segment: index + 1, segmentCount: count, y, height: segmentHeight });
+    segments.push({ filename: `${testInfo.project.name}/${path.basename(directory)}/${filename}`, segment: index + 1, segmentCount: count, y, height: segmentHeight, safeSegmentLimit: maxSegmentHeight });
   }
   return segments;
 }
@@ -364,13 +373,41 @@ for (const [label, width, height] of viewports) {
         const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1);
         expect.soft(overflow, `${name} has horizontal overflow at ${width}`).toBeFalsy();
         const screenshots = await capturePageScreenshots(page, directory, name, testInfo);
-        screenshots.forEach(screenshot => index.push({ page: name, route, browser: testInfo.project.name, viewport: label, httpStatus: status, error, previewDrawerRemoved, ...screenshot }));
+        screenshots.forEach(screenshot => index.push({
+          page: name,
+          route,
+          browser: testInfo.project.name,
+          viewport: label,
+          revision: EXPECTED_COMMIT,
+          workflowRun: WORKFLOW_RUN_ID,
+          artifactLocation: `milestone-9-${testInfo.project.name}-qa-${EXPECTED_COMMIT}`,
+          reviewStatus: 'automated-pass',
+          httpStatus: status,
+          error,
+          previewDrawerRemoved,
+          ...screenshot,
+        }));
       } catch (caught) {
         error = String(caught?.message || caught);
         expect.soft(error, `${name} should render at ${width}`).toBe('');
         const filename = `${name}-error.png`;
         await page.screenshot({ path: `${directory}/${filename}`, animations: 'disabled' }).catch(() => {});
-        index.push({ page: name, route, browser: testInfo.project.name, viewport: label, filename: `${testInfo.project.name}/${label}/${filename}`, httpStatus: status, error, previewDrawerRemoved, segment: 1, segmentCount: 1 });
+        index.push({
+          page: name,
+          route,
+          browser: testInfo.project.name,
+          viewport: label,
+          revision: EXPECTED_COMMIT,
+          workflowRun: WORKFLOW_RUN_ID,
+          artifactLocation: `milestone-9-${testInfo.project.name}-qa-${EXPECTED_COMMIT}`,
+          reviewStatus: 'needs-review',
+          filename: `${testInfo.project.name}/${label}/${filename}`,
+          httpStatus: status,
+          error,
+          previewDrawerRemoved,
+          segment: 1,
+          segmentCount: 1,
+        });
       }
     }
 
