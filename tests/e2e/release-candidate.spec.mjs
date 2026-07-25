@@ -12,7 +12,7 @@ const routes = [
   ['recruitment-application', '/careers/apply/'], ['recruitment-confirmation', '/careers/confirmation/'],
   ['general-inquiry', '/contact/'], ['contact-confirmation', '/contact/confirmation/'],
   ['privacy', '/privacy/'], ['terms', '/terms/'], ['disclaimer', '/disclaimer/'], ['cookies', '/cookies/'],
-  ['system-error', '/system-error.html'], ['not-found', '/definitely-not-a-real-page-m7']
+  ['system-error', '/system-error.html'], ['not-found', '/definitely-not-a-real-page-m9']
 ];
 
 const viewports = [
@@ -22,9 +22,11 @@ const viewports = [
 const analyticsPattern = /google-analytics|googletagmanager|facebook\.com\/tr/i;
 const collectionPattern = /google-analytics\.com|analytics\.google\.com|googletagmanager\.com\/g\/collect/i;
 const forbiddenAnalyticsValues = [
-  'TEST M7 — Not a Real Client', 'test-m7@example.invalid', '09170000000',
-  'Synthetic Milestone 7 form verification only', 'booking-management-token-test'
+  'TEST M9 — Not a Real Client', 'test-m9@example.invalid', '09170000000',
+  'Synthetic Milestone 9 form verification only', 'booking-management-token-test'
 ];
+const previewHostname = new URL(process.env.PLAYWRIGHT_BASE_URL || 'https://invalid.example').hostname;
+const netlifyToolbarStyleHash = 'sha256-dH+oOZOdDv+MWU0F8bCZOoFHX0jFM4+bwNqOKujbv90=';
 
 async function writeJson(name, value) {
   await fs.mkdir('test-results/evidence', { recursive: true });
@@ -44,9 +46,11 @@ async function activate(locator) {
 }
 
 function isPreviewPlatformNoise(text) {
+  const exactToolbarStyleViolation = previewHostname.startsWith('deploy-preview-8--') &&
+    /Applying inline style violates/i.test(text) && text.includes(netlifyToolbarStyleHash);
   return /app\.netlify\.com|deployID=/i.test(text) ||
     /Source: position:fixed/i.test(text) ||
-    (/Content-Security-Policy/i.test(text) && /line: 0/i.test(text) && /(frame-src|inline style)/i.test(text));
+    exactToolbarStyleViolation;
 }
 
 async function captureAnalytics(page) {
@@ -127,8 +131,8 @@ test('analytics acceptance sends only consented allowlisted data', async ({ page
   await page.evaluate(() => {
     window.AvodahAnalytics?.track('general_inquiry_submitted', {
       workflow: 'general_inquiry', status: 'submitted', inquiry_category: 'general',
-      full_name: 'TEST M7 — Not a Real Client', email: 'test-m7@example.invalid',
-      mobile_number: '09170000000', message: 'Synthetic Milestone 7 form verification only',
+      full_name: 'TEST M9 — Not a Real Client', email: 'test-m9@example.invalid',
+      mobile_number: '09170000000', message: 'Synthetic Milestone 9 form verification only',
       booking_management_token: 'booking-management-token-test'
     });
   });
