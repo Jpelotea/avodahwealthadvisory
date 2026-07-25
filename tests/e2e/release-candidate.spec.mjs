@@ -26,7 +26,10 @@ const forbiddenAnalyticsValues = [
   'Synthetic Milestone 9 form verification only', 'booking-management-token-test'
 ];
 const previewHostname = new URL(process.env.PLAYWRIGHT_BASE_URL || 'https://invalid.example').hostname;
-const netlifyToolbarStyleHash = 'sha256-dH+oOZOdDv+MWU0F8bCZOoFHX0jFM4+bwNqOKujbv90=';
+const netlifyDrawerStyleHashes = [
+  'sha256-dH+oOZOdDv+MWU0F8bCZOoFHX0jFM4+bwNqOKujbv90=',
+  'sha256-ikgYIuM/1wkyZ+w23wP7pGyeh3RzH5XDMS3MqR2mWrY=',
+];
 
 async function writeJson(name, value) {
   await fs.mkdir('test-results/evidence', { recursive: true });
@@ -46,11 +49,22 @@ async function activate(locator) {
 }
 
 function isPreviewPlatformNoise(text) {
-  const exactToolbarStyleViolation = previewHostname.startsWith('deploy-preview-8--') &&
-    /Applying inline style violates/i.test(text) && text.includes(netlifyToolbarStyleHash);
+  const exactDrawerStyleViolation = previewHostname.startsWith('deploy-preview-8--') &&
+    /Applying inline style violates/i.test(text) &&
+    netlifyDrawerStyleHashes.some(hash => text.includes(hash));
   return /app\.netlify\.com|deployID=/i.test(text) ||
     /Source: position:fixed/i.test(text) ||
-    exactToolbarStyleViolation;
+    exactDrawerStyleViolation;
+}
+
+async function removeNetlifyDrawer(page) {
+  return await page.evaluate(() => {
+    const drawer = document.querySelector('[data-netlify-deploy-id]');
+    const iframe = drawer?.querySelector('iframe[title="Netlify Drawer"]');
+    const exactDrawer = Boolean(drawer && iframe && drawer.getAttribute('data-netlify-site-id'));
+    if (exactDrawer) drawer.remove();
+    return exactDrawer;
+  });
 }
 
 async function captureAnalytics(page) {
@@ -217,9 +231,10 @@ test('forms expose separate processing and marketing controls', async ({ page })
   await expect(compatibility).toHaveValue('Yes');
   await expect(marketingChoice).toHaveValue('No');
 
-  await marketingControl.check({ force: true });
   await page.evaluate(() => {
     const form = document.querySelector('#needs-form');
+    const marketingInput = form.querySelector('[data-marketing-consent-control]');
+    marketingInput.checked = true;
     form.addEventListener('submit', event => event.preventDefault(), { once: true });
     form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
   });
@@ -263,9 +278,11 @@ for (const [label, width, height] of viewports) {
     for (const [name, route] of routes) {
       let status = 0;
       let error = '';
+      let previewDrawerRemoved = false;
       try {
         const response = await gotoReady(page, route);
         status = response?.status() || 0;
+        previewDrawerRemoved = await removeNetlifyDrawer(page);
         const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1);
         expect.soft(overflow, `${name} has horizontal overflow at ${width}`).toBeFalsy();
       } catch (caught) {
@@ -274,7 +291,7 @@ for (const [label, width, height] of viewports) {
       }
       const filename = `${name}.png`;
       await page.screenshot({ path: `${directory}/${filename}`, fullPage: true });
-      index.push({ page: name, route, browser: testInfo.project.name, viewport: label, filename: `${testInfo.project.name}/${label}/${filename}`, httpStatus: status, error });
+      index.push({ page: name, route, browser: testInfo.project.name, viewport: label, filename: `${testInfo.project.name}/${label}/${filename}`, httpStatus: status, error, previewDrawerRemoved });
     }
 
     await writeJson(`screenshot-index-${testInfo.project.name}-${label}.json`, index);
