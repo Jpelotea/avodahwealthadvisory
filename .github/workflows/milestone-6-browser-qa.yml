@@ -17,7 +17,7 @@ concurrency:
 
 env:
   PLAYWRIGHT_BASE_URL: https://deploy-preview-8--avodahwealthadvisory.netlify.app
-  EXPECTED_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+  EXPECTED_RC_REVISION: m8-deploy-recovery-v1
 
 jobs:
   synchronization-isolation:
@@ -58,23 +58,25 @@ jobs:
       - run: npm install --no-audit --no-fund
       - name: Install ${{ matrix.browser }} browser
         run: npx playwright install --with-deps ${{ matrix.browser }}
-      - name: Wait for exact Deploy Preview revision
+      - name: Wait for protected release marker
         shell: bash
         run: |
           mkdir -p test-results/evidence
           for i in {1..60}; do
-            code=$(curl -sS -o /dev/null -w '%{http_code}' "$PLAYWRIGHT_BASE_URL" || true)
-            metadata=$(curl -fsS "$PLAYWRIGHT_BASE_URL/rc-revision.json" || true)
-            observed=$(node -e 'try{const value=JSON.parse(process.argv[1]);process.stdout.write(String(value.revision||""));}catch{}' "$metadata")
-            deploy_context=$(node -e 'try{const value=JSON.parse(process.argv[1]);process.stdout.write(String(value.deployContext||""));}catch{}' "$metadata")
-            echo "attempt=$i status=$code expected=$EXPECTED_COMMIT observed=$observed context=$deploy_context"
-            if [ "$code" = "200" ] && [ "$observed" = "$EXPECTED_COMMIT" ] && [ "$deploy_context" = "deploy-preview" ]; then
-              printf '{"expectedRevision":"%s","observedRevision":"%s","deployContext":"%s","httpStatus":%s,"target":"%s","workflowSha":"%s"}\n' "$EXPECTED_COMMIT" "$observed" "$deploy_context" "$code" "$PLAYWRIGHT_BASE_URL" "$GITHUB_SHA" > "test-results/evidence/revision-${{ matrix.browser }}.json"
+            headers=$(mktemp)
+            code=$(curl -sS -D "$headers" -o /dev/null -w '%{http_code}' "$PLAYWRIGHT_BASE_URL" || true)
+            robots=$(awk 'BEGIN{IGNORECASE=1} /^x-robots-tag:/ {sub(/^[^:]+:[[:space:]]*/, ""); print}' "$headers" | tr -d '\r')
+            revision=$(awk 'BEGIN{IGNORECASE=1} /^x-avodah-rc-revision:/ {sub(/^[^:]+:[[:space:]]*/, ""); print}' "$headers" | tr -d '\r')
+            deploy_context=$(awk 'BEGIN{IGNORECASE=1} /^x-avodah-deploy-context:/ {sub(/^[^:]+:[[:space:]]*/, ""); print}' "$headers" | tr -d '\r')
+            rm -f "$headers"
+            echo "attempt=$i status=$code expected=$EXPECTED_RC_REVISION observed=$revision context=$deploy_context robots=$robots"
+            if [ "$code" = "200" ] && echo "$robots" | grep -qi 'noindex' && [ "$revision" = "$EXPECTED_RC_REVISION" ] && [ "$deploy_context" = "deploy-preview" ]; then
+              printf '{"expectedReleaseMarker":"%s","observedReleaseMarker":"%s","deployContext":"%s","httpStatus":%s,"target":"%s","workflowSha":"%s"}\n' "$EXPECTED_RC_REVISION" "$revision" "$deploy_context" "$code" "$PLAYWRIGHT_BASE_URL" "$GITHUB_SHA" > "test-results/evidence/revision-${{ matrix.browser }}.json"
               exit 0
             fi
             sleep 10
           done
-          echo "Deploy Preview did not reach exact commit $EXPECTED_COMMIT."
+          echo "Deploy Preview did not reach protected marker $EXPECTED_RC_REVISION."
           exit 1
       - name: Run ${{ matrix.browser }} browser QA
         run: npm run test:e2e -- --project=${{ matrix.browser }}
@@ -101,23 +103,25 @@ jobs:
       - run: npm install --no-audit --no-fund
       - name: Install Chromium for Lighthouse
         run: npx playwright install --with-deps chromium
-      - name: Wait for exact Deploy Preview revision
+      - name: Wait for protected release marker
         shell: bash
         run: |
           mkdir -p test-results/lighthouse
           for i in {1..60}; do
-            code=$(curl -sS -o /dev/null -w '%{http_code}' "$PLAYWRIGHT_BASE_URL" || true)
-            metadata=$(curl -fsS "$PLAYWRIGHT_BASE_URL/rc-revision.json" || true)
-            observed=$(node -e 'try{const value=JSON.parse(process.argv[1]);process.stdout.write(String(value.revision||""));}catch{}' "$metadata")
-            deploy_context=$(node -e 'try{const value=JSON.parse(process.argv[1]);process.stdout.write(String(value.deployContext||""));}catch{}' "$metadata")
-            echo "attempt=$i status=$code expected=$EXPECTED_COMMIT observed=$observed context=$deploy_context"
-            if [ "$code" = "200" ] && [ "$observed" = "$EXPECTED_COMMIT" ] && [ "$deploy_context" = "deploy-preview" ]; then
-              printf '{"expectedRevision":"%s","observedRevision":"%s","deployContext":"%s","httpStatus":%s,"target":"%s","workflowSha":"%s"}\n' "$EXPECTED_COMMIT" "$observed" "$deploy_context" "$code" "$PLAYWRIGHT_BASE_URL" "$GITHUB_SHA" > test-results/lighthouse/revision.json
+            headers=$(mktemp)
+            code=$(curl -sS -D "$headers" -o /dev/null -w '%{http_code}' "$PLAYWRIGHT_BASE_URL" || true)
+            robots=$(awk 'BEGIN{IGNORECASE=1} /^x-robots-tag:/ {sub(/^[^:]+:[[:space:]]*/, ""); print}' "$headers" | tr -d '\r')
+            revision=$(awk 'BEGIN{IGNORECASE=1} /^x-avodah-rc-revision:/ {sub(/^[^:]+:[[:space:]]*/, ""); print}' "$headers" | tr -d '\r')
+            deploy_context=$(awk 'BEGIN{IGNORECASE=1} /^x-avodah-deploy-context:/ {sub(/^[^:]+:[[:space:]]*/, ""); print}' "$headers" | tr -d '\r')
+            rm -f "$headers"
+            echo "attempt=$i status=$code expected=$EXPECTED_RC_REVISION observed=$revision context=$deploy_context robots=$robots"
+            if [ "$code" = "200" ] && echo "$robots" | grep -qi 'noindex' && [ "$revision" = "$EXPECTED_RC_REVISION" ] && [ "$deploy_context" = "deploy-preview" ]; then
+              printf '{"expectedReleaseMarker":"%s","observedReleaseMarker":"%s","deployContext":"%s","httpStatus":%s,"target":"%s","workflowSha":"%s"}\n' "$EXPECTED_RC_REVISION" "$revision" "$deploy_context" "$code" "$PLAYWRIGHT_BASE_URL" "$GITHUB_SHA" > test-results/lighthouse/revision.json
               exit 0
             fi
             sleep 10
           done
-          echo "Deploy Preview did not reach exact commit $EXPECTED_COMMIT."
+          echo "Deploy Preview did not reach protected marker $EXPECTED_RC_REVISION."
           exit 1
       - name: Run Lighthouse on priority workflows
         shell: bash
