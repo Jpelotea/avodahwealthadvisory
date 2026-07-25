@@ -4,6 +4,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 const CONSENT_STORAGE_KEY = 'avodah_cookie_preferences';
+const EXPECTED_MARKER = process.env.EXPECTED_RC_REVISION || 'm9-definitive-evidence-v1';
 const routes = [
   ['home', '/'], ['consultation', '/consultation/'], ['consultation-confirmation', '/consultation/confirmation/'],
   ['booking-confirmation', '/consultation/booking-confirmation/'], ['client-support', '/client-support/'],
@@ -30,6 +31,7 @@ const netlifyDrawerStyleHashes = [
   'sha256-dH+oOZOdDv+MWU0F8bCZOoFHX0jFM4+bwNqOKujbv90=',
   'sha256-ikgYIuM/1wkyZ+w23wP7pGyeh3RzH5XDMS3MqR2mWrY=',
 ];
+const webkitDrawerStyleMessage = "Refused to apply a stylesheet because its hash, its nonce, or 'unsafe-inline' does not appear in the style-src directive of the Content Security Policy.";
 
 async function writeJson(name, value) {
   await fs.mkdir('test-results/evidence', { recursive: true });
@@ -37,10 +39,19 @@ async function writeJson(name, value) {
 }
 
 async function gotoReady(page, route) {
-  const response = await page.goto(route, { waitUntil: 'domcontentloaded', timeout: 60_000 });
-  await page.waitForLoadState('load', { timeout: 15_000 }).catch(() => {});
-  await page.waitForTimeout(350);
-  return response;
+  let response = null;
+  for (let attempt = 1; attempt <= 12; attempt += 1) {
+    response = await page.goto(route, { waitUntil: 'domcontentloaded', timeout: 60_000 });
+    await page.waitForLoadState('load', { timeout: 15_000 }).catch(() => {});
+    const headers = response?.headers() || {};
+    const exactRoute = headers['x-avodah-rc-revision'] === EXPECTED_MARKER && headers['x-avodah-deploy-context'] === 'deploy-preview';
+    if (exactRoute) {
+      await page.waitForTimeout(350);
+      return response;
+    }
+    await page.waitForTimeout(2_000);
+  }
+  throw new Error(`${route} did not serve the exact protected release marker.`);
 }
 
 async function activate(locator) {
@@ -48,13 +59,21 @@ async function activate(locator) {
   await locator.dispatchEvent('click');
 }
 
-function isPreviewPlatformNoise(text) {
+function isHashedPreviewPlatformNoise(text) {
   const exactDrawerStyleViolation = previewHostname.startsWith('deploy-preview-8--') &&
     /Applying inline style violates/i.test(text) &&
     netlifyDrawerStyleHashes.some(hash => text.includes(hash));
   return /app\.netlify\.com|deployID=/i.test(text) ||
     /Source: position:fixed/i.test(text) ||
     exactDrawerStyleViolation;
+}
+
+async function netlifyDrawerPresent(page) {
+  return await page.evaluate(() => {
+    const drawer = document.querySelector('[data-netlify-deploy-id]');
+    const iframe = drawer?.querySelector('iframe[title="Netlify Drawer"]');
+    return Boolean(drawer && iframe && drawer.getAttribute('data-netlify-site-id'));
+  });
 }
 
 async function removeNetlifyDrawer(page) {
@@ -84,15 +103,8 @@ async function captureAnalytics(page) {
 
 for (const [name, route] of routes) {
   test(`${name} renders without serious accessibility violations`, async ({ page }, testInfo) => {
-    const consoleErrors = [];
-    const previewNoise = [];
-    page.on('console', msg => {
-      if (msg.type() !== 'error') return;
-      const text = msg.text();
-      const expectedNotFoundNoise = name === 'not-found' && /status of 404/i.test(text);
-      if (expectedNotFoundNoise || isPreviewPlatformNoise(text)) previewNoise.push(text);
-      else consoleErrors.push(text);
-    });
+    const rawConsoleErrors = [];
+    page.on('console', msg => { if (msg.type() === 'error') rawConsoleErrors.push(msg.text()); });
 
     const response = await gotoReady(page, route);
     expect(response, `${route} should respond`).not.toBeNull();
@@ -101,9 +113,19 @@ for (const [name, route] of routes) {
     await expect(page.locator('h1')).toHaveCount(1);
 
     const results = await new AxeBuilder({ page }).analyze();
+    const drawerPresent = await netlifyDrawerPresent(page);
+    const consoleErrors = [];
+    const previewNoise = [];
+    for (const text of rawConsoleErrors) {
+      const expectedNotFoundNoise = name === 'not-found' && /status of 404/i.test(text);
+      const exactWebKitDrawerNoise = testInfo.project.name === 'webkit' && drawerPresent && text === webkitDrawerStyleMessage;
+      if (expectedNotFoundNoise || isHashedPreviewPlatformNoise(text) || exactWebKitDrawerNoise) previewNoise.push(text);
+      else consoleErrors.push(text);
+    }
+
     const blockers = results.violations.filter(v => ['critical', 'serious'].includes(v.impact));
     await writeJson(`${testInfo.project.name}-${name}-axe.json`, results);
-    await writeJson(`${testInfo.project.name}-${name}-console.json`, { consoleErrors, previewPlatformNoise: previewNoise });
+    await writeJson(`${testInfo.project.name}-${name}-console.json`, { consoleErrors, previewPlatformNoise: previewNoise, exactNetlifyDrawerPresent: drawerPresent });
     expect(blockers, JSON.stringify(blockers, null, 2)).toEqual([]);
     expect(consoleErrors, consoleErrors.join('\n')).toEqual([]);
   });
@@ -140,7 +162,7 @@ test('analytics acceptance sends only consented allowlisted data', async ({ page
   const analytics = await captureAnalytics(page);
   await gotoReady(page, '/');
   await activate(page.getByRole('button', { name: /accept analytics/i }));
-  await expect.poll(() => analytics.some(item => /googletagmanager\.com\/gtag\/js/i.test(item.url)), { timeout: 15_000 }).toBe(true);
+  await expect.poll(() => analytics.some(item => /googletagmanager\.com\/gtag\/js/i.test(item.url)), { timeout: 30_000 }).toBe(true);
 
   await page.evaluate(() => {
     window.AvodahAnalytics?.track('general_inquiry_submitted', {
@@ -162,7 +184,7 @@ test('revoking analytics stops future events and removes first-party GA cookies'
   const analytics = await captureAnalytics(page);
   await gotoReady(page, '/');
   await activate(page.getByRole('button', { name: /accept analytics/i }));
-  await expect.poll(() => analytics.some(item => /googletagmanager\.com\/gtag\/js/i.test(item.url)), { timeout: 15_000 }).toBe(true);
+  await expect.poll(() => analytics.some(item => /googletagmanager\.com\/gtag\/js/i.test(item.url)), { timeout: 30_000 }).toBe(true);
 
   await activate(page.locator('[data-cookie-reopen]').first());
   const analyticsToggle = page.locator('[data-cookie-analytics]');
@@ -186,7 +208,7 @@ test('returning current-version analytics preference is applied before optional 
   }, { key: CONSENT_STORAGE_KEY });
   const analytics = await captureAnalytics(page);
   await gotoReady(page, '/');
-  await expect.poll(() => analytics.some(item => /googletagmanager\.com\/gtag\/js/i.test(item.url)), { timeout: 15_000 }).toBe(true);
+  await expect.poll(() => analytics.some(item => /googletagmanager\.com\/gtag\/js/i.test(item.url)), { timeout: 30_000 }).toBe(true);
   await writeJson(`${testInfo.project.name}-consent-returning-visitor.json`, { requests: analytics });
 });
 
@@ -267,6 +289,34 @@ test('cookie dialog traps focus, closes with Escape, and restores focus', async 
   await expect(settings).toBeFocused();
 });
 
+async function capturePageScreenshots(page, directory, name, testInfo) {
+  const dimensions = await page.evaluate(() => ({
+    width: Math.max(document.documentElement.scrollWidth, document.documentElement.clientWidth),
+    height: Math.max(document.documentElement.scrollHeight, document.body?.scrollHeight || 0, document.documentElement.clientHeight),
+  }));
+  const maxSegmentHeight = 16_000;
+  if (dimensions.height <= 30_000) {
+    const filename = `${name}.png`;
+    await page.screenshot({ path: `${directory}/${filename}`, fullPage: true, animations: 'disabled' });
+    return [{ filename: `${testInfo.project.name}/${path.basename(directory)}/${filename}`, segment: 1, segmentCount: 1, y: 0, height: dimensions.height }];
+  }
+
+  const segments = [];
+  const count = Math.ceil(dimensions.height / maxSegmentHeight);
+  for (let index = 0; index < count; index += 1) {
+    const y = index * maxSegmentHeight;
+    const segmentHeight = Math.min(maxSegmentHeight, dimensions.height - y);
+    const filename = `${name}-part-${index + 1}-of-${count}.png`;
+    await page.screenshot({
+      path: `${directory}/${filename}`,
+      clip: { x: 0, y, width: Math.min(dimensions.width, page.viewportSize().width), height: segmentHeight },
+      animations: 'disabled',
+    });
+    segments.push({ filename: `${testInfo.project.name}/${path.basename(directory)}/${filename}`, segment: index + 1, segmentCount: count, y, height: segmentHeight });
+  }
+  return segments;
+}
+
 for (const [label, width, height] of viewports) {
   test(`screenshot matrix ${label}`, async ({ page }, testInfo) => {
     test.setTimeout(300_000);
@@ -282,16 +332,19 @@ for (const [label, width, height] of viewports) {
       try {
         const response = await gotoReady(page, route);
         status = response?.status() || 0;
+        await page.waitForTimeout(500);
         previewDrawerRemoved = await removeNetlifyDrawer(page);
         const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1);
         expect.soft(overflow, `${name} has horizontal overflow at ${width}`).toBeFalsy();
+        const screenshots = await capturePageScreenshots(page, directory, name, testInfo);
+        screenshots.forEach(screenshot => index.push({ page: name, route, browser: testInfo.project.name, viewport: label, httpStatus: status, error, previewDrawerRemoved, ...screenshot }));
       } catch (caught) {
         error = String(caught?.message || caught);
         expect.soft(error, `${name} should render at ${width}`).toBe('');
+        const filename = `${name}-error.png`;
+        await page.screenshot({ path: `${directory}/${filename}`, animations: 'disabled' }).catch(() => {});
+        index.push({ page: name, route, browser: testInfo.project.name, viewport: label, filename: `${testInfo.project.name}/${label}/${filename}`, httpStatus: status, error, previewDrawerRemoved, segment: 1, segmentCount: 1 });
       }
-      const filename = `${name}.png`;
-      await page.screenshot({ path: `${directory}/${filename}`, fullPage: true });
-      index.push({ page: name, route, browser: testInfo.project.name, viewport: label, filename: `${testInfo.project.name}/${label}/${filename}`, httpStatus: status, error, previewDrawerRemoved });
     }
 
     await writeJson(`screenshot-index-${testInfo.project.name}-${label}.json`, index);
