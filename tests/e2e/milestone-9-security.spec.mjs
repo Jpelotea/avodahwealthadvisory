@@ -9,17 +9,25 @@ const netlifyDrawerStyleHashes = [
   'sha256-dH+oOZOdDv+MWU0F8bCZOoFHX0jFM4+bwNqOKujbv90=',
   'sha256-ikgYIuM/1wkyZ+w23wP7pGyeh3RzH5XDMS3MqR2mWrY=',
 ];
+const webkitDrawerStyleMessage = "Refused to apply a stylesheet because its hash, its nonce, or 'unsafe-inline' does not appear in the style-src directive of the Content Security Policy.";
 
 async function writeEvidence(name, data) {
   await fs.mkdir('test-results/evidence', { recursive: true });
   await fs.writeFile(`test-results/evidence/${name}`, `${JSON.stringify(data, null, 2)}\n`, 'utf8');
 }
 
-function isExactPreviewDrawerNoise(text) {
+function isHashedPreviewDrawerNoise(text) {
   const drawerStyleViolation = previewHostname.startsWith('deploy-preview-8--') &&
     /Applying inline style violates/i.test(text) &&
     netlifyDrawerStyleHashes.some(hash => text.includes(hash));
   return /app\.netlify\.com|deployID=|Source: position:fixed/i.test(text) || drawerStyleViolation;
+}
+
+async function exactDrawerPresent(page) {
+  return await page.evaluate(() => {
+    const drawer = document.querySelector('[data-netlify-deploy-id]');
+    return Boolean(drawer?.getAttribute('data-netlify-site-id') && drawer.querySelector('iframe[title="Netlify Drawer"]'));
+  });
 }
 
 test('release endpoint, Edge health, and preview headers identify the exact revision', async ({ request }, testInfo) => {
@@ -57,17 +65,17 @@ test('release endpoint, Edge health, and preview headers identify the exact revi
 
 for (const route of priorityRoutes) {
   test(`${route} operates under the strict application CSP`, async ({ page }, testInfo) => {
-    const cspErrors = [];
-    const previewDrawerNoise = [];
+    const rawCspErrors = [];
     page.on('console', message => {
-      if (message.type() !== 'error' || !/content-security-policy|refused to execute|refused to load/i.test(message.text())) return;
-      const text = message.text();
-      if (isExactPreviewDrawerNoise(text)) previewDrawerNoise.push(text);
-      else cspErrors.push(text);
+      if (message.type() === 'error' && /content-security-policy|refused to execute|refused to load|refused to apply a stylesheet/i.test(message.text())) {
+        rawCspErrors.push(message.text());
+      }
     });
 
     const response = await page.goto(route, { waitUntil: 'domcontentloaded', timeout: 60_000 });
     expect(response).not.toBeNull();
+    expect(response.headers()['x-avodah-rc-revision']).toBe(expectedMarker);
+    expect(response.headers()['x-avodah-deploy-context']).toBe('deploy-preview');
     const csp = response.headers()['content-security-policy'] || '';
     expect(csp).toContain("default-src 'self'");
     expect(csp).toContain("script-src-attr 'none'");
@@ -77,6 +85,9 @@ for (const route of priorityRoutes) {
     const applicationInlineHandlers = await page.locator('[onclick],[onchange],[onsubmit],[onload],[onerror],[oninput],[onfocus],[onblur]').count();
     expect(applicationInlineHandlers).toBe(0);
 
+    const applicationInlineStyles = await page.locator('[style]').evaluateAll(elements => elements.filter(element => !element.closest('[data-netlify-deploy-id]')).length);
+    expect(applicationInlineStyles).toBe(0);
+
     const staticAnalyticsLoaders = await page.locator('script[src*="googletagmanager.com/gtag/js"],script[src*="google-analytics.com"]').count();
     expect(staticAnalyticsLoaders).toBe(0);
 
@@ -85,13 +96,24 @@ for (const route of priorityRoutes) {
     }
 
     await page.waitForTimeout(750);
+    const drawerPresent = await exactDrawerPresent(page);
+    const cspErrors = [];
+    const previewDrawerNoise = [];
+    for (const text of rawCspErrors) {
+      const exactWebKitDrawerNoise = testInfo.project.name === 'webkit' && drawerPresent && text === webkitDrawerStyleMessage;
+      if (isHashedPreviewDrawerNoise(text) || exactWebKitDrawerNoise) previewDrawerNoise.push(text);
+      else cspErrors.push(text);
+    }
+
     await writeEvidence(`${testInfo.project.name}-${route.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '') || 'home'}-csp.json`, {
       route,
       csp,
       applicationInlineHandlers,
+      applicationInlineStyles,
       staticAnalyticsLoaders,
       cspErrors,
       previewDrawerNoise,
+      exactNetlifyDrawerPresent: drawerPresent,
     });
     expect(cspErrors).toEqual([]);
   });
