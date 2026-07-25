@@ -4,13 +4,19 @@ import path from 'node:path';
 const baseUrl = String(process.env.PLAYWRIGHT_BASE_URL || '').replace(/\/$/, '');
 const expectedCommit = String(process.env.EXPECTED_COMMIT || '');
 const expectedMarker = String(process.env.EXPECTED_RC_REVISION || '');
-const outputPath = String(process.env.GATE_OUTPUT || 'test-results/evidence/release-gate.json');
+const outputKey = String(process.env.GATE_OUTPUT_KEY || 'browser');
+const outputPaths = {
+  browser: 'test-results/evidence/release-gate.json',
+  lighthouse: 'test-results/lighthouse/release-gate.json',
+};
+const outputPath = outputPaths[outputKey];
 const maxAttempts = Number(process.env.GATE_ATTEMPTS || 60);
 const delayMs = Number(process.env.GATE_DELAY_MS || 10_000);
 
 if (!baseUrl || !expectedCommit || !expectedMarker) {
   throw new Error('PLAYWRIGHT_BASE_URL, EXPECTED_COMMIT, and EXPECTED_RC_REVISION are required.');
 }
+if (!outputPath) throw new Error(`Unsupported GATE_OUTPUT_KEY: ${outputKey}`);
 
 const target = new URL(baseUrl);
 if (target.hostname === 'avodahwealthadvisory.netlify.app' || !target.hostname.startsWith('deploy-preview-8--')) {
