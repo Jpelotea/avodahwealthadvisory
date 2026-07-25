@@ -13,11 +13,15 @@ context.on('request', request => {
 });
 
 try {
-  for (const formName of Object.keys(formDefinitions)) {
+  const formNames = process.env.SYNTHETIC_FORM_NAME
+    ? [process.env.SYNTHETIC_FORM_NAME]
+    : Object.keys(formDefinitions);
+  for (const [formIndex, formName] of formNames.entries()) {
+    if (!formDefinitions[formName]) throw new Error(`Unknown synthetic form name: ${formName}`);
     for (const operation of [
       () => verifyMissingRequired(context, formName),
       () => verifyMissingProcessingConsent(context, formName),
-      () => submitValidAndVerifyNavigation(context, formName, false),
+      () => submitValidAndVerifyNavigation(context, formName, false, { exerciseNavigation: true }),
       () => submitValidAndVerifyNavigation(context, formName, true),
       () => verifyDoubleClick(context, formName),
       () => verifySameReferenceResubmission(context, formName),
@@ -38,11 +42,18 @@ try {
           cleanup: 'pending scan',
         });
       }
+      await sleep(1_500);
     }
-  }
 
-  const { verified, spam } = await pollForSyntheticSubmissions();
-  evaluateStoredResults(verified, spam);
+    const { verified, spam } = await pollForSyntheticSubmissions();
+    evaluateStoredResults(verified, spam);
+    await cleanupSyntheticRecords();
+    pendingValid.length = 0;
+    pendingDoubleClick.length = 0;
+    pendingSameReference.length = 0;
+    pendingHoneypot.length = 0;
+    if (formIndex < formNames.length - 1) await sleep(perFormCooldownMs);
+  }
 
   const forbiddenRequests = browserNetwork.filter(item => item.forbiddenReason);
   const analyticsRequests = browserNetwork.filter(item => /Google Analytics|Meta Pixel/.test(item.forbiddenReason));
