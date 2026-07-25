@@ -12,7 +12,6 @@ permissions:
   contents: read
   actions: read
   packages: read
-  security-events: write
 
 concurrency:
   group: milestone-9-codeql-${{ github.event.pull_request.number || github.ref }}
@@ -49,7 +48,83 @@ jobs:
         run: |
           npm run build
           npm run test:unit
-      - name: Analyze current branch head
+      - name: Analyze current branch head without remote publication dependency
+        id: codeql
         uses: github/codeql-action/analyze@v4
         with:
           category: /language:javascript-typescript
+          upload: never
+          output: codeql-results
+          post-processed-sarif-path: codeql-results/post-processed
+      - name: Summarize current CodeQL results and enforce severity gate
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+
+          const roots = ['codeql-results/post-processed', 'codeql-results'];
+          const files = [];
+          for (const root of roots) {
+            if (!fs.existsSync(root)) continue;
+            for (const entry of fs.readdirSync(root, { recursive: true })) {
+              const full = path.join(root, String(entry));
+              if (fs.existsSync(full) && fs.statSync(full).isFile() && /\.sarif$/i.test(full)) files.push(full);
+            }
+          }
+          const uniqueFiles = [...new Set(files)];
+          if (!uniqueFiles.length) throw new Error('CodeQL did not produce a SARIF result file.');
+
+          const findings = [];
+          const runs = [];
+          for (const file of uniqueFiles) {
+            const sarif = JSON.parse(fs.readFileSync(file, 'utf8'));
+            for (const run of sarif.runs || []) {
+              const rules = new Map((run.tool?.driver?.rules || []).map(rule => [rule.id, rule]));
+              const results = run.results || [];
+              runs.push({ file, tool: run.tool?.driver?.name || 'CodeQL', resultCount: results.length });
+              for (const result of results) {
+                const rule = rules.get(result.ruleId) || {};
+                const securitySeverity = Number(rule.properties?.['security-severity'] ?? result.properties?.['security-severity'] ?? 0);
+                const location = result.locations?.[0]?.physicalLocation;
+                findings.push({
+                  ruleId: result.ruleId || '',
+                  level: result.level || rule.defaultConfiguration?.level || 'warning',
+                  securitySeverity: Number.isFinite(securitySeverity) ? securitySeverity : 0,
+                  message: result.message?.text || '',
+                  path: location?.artifactLocation?.uri || '',
+                  startLine: location?.region?.startLine || null,
+                });
+              }
+            }
+          }
+
+          const highOrCritical = findings.filter(finding => finding.securitySeverity >= 7.0);
+          const summary = {
+            analyzedCommit: process.env.GITHUB_SHA,
+            analyzedHead: process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME,
+            sarifFiles: uniqueFiles,
+            runs,
+            totalFindings: findings.length,
+            highOrCriticalCount: highOrCritical.length,
+            findings,
+            passed: highOrCritical.length === 0,
+          };
+          fs.mkdirSync('test-results/codeql', { recursive: true });
+          fs.writeFileSync('test-results/codeql/summary.json', JSON.stringify(summary, null, 2));
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## CodeQL current-head evidence\n\n- SARIF files: ${uniqueFiles.length}\n- Total findings: ${findings.length}\n- High or critical: ${highOrCritical.length}\n`);
+          if (highOrCritical.length) {
+            console.error(JSON.stringify(highOrCritical, null, 2));
+            process.exitCode = 1;
+          }
+          NODE
+      - name: Upload current-head CodeQL evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: milestone-9-codeql-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            codeql-results
+            test-results/codeql/summary.json
+          if-no-files-found: warn
+          retention-days: 30
