@@ -1,10 +1,10 @@
-import { readdir, readFile, writeFile } from 'node:fs/promises';
+import { readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { parse, serialize } from 'parse5';
 
 const ROOT = process.cwd();
 const MEASUREMENT_ID = 'G-HV9X54P7NT';
-const EDGE_REVISION_PLACEHOLDER = '__NETLIFY_COMMIT_REF__';
+const RELEASE_MARKER = 'm9-definitive-evidence-v1';
 
 const attribute = (node, name) => node.attrs?.find((item) => item.name === name)?.value || '';
 const textContent = (node) => (node.childNodes || [])
@@ -50,17 +50,35 @@ for (const file of files) {
 
 const revision = String(process.env.COMMIT_REF || process.env.GITHUB_SHA || 'local');
 const deployContext = String(process.env.CONTEXT || 'local');
+const releaseEvidence = {
+  releaseMarker: RELEASE_MARKER,
+  revision,
+  deployContext,
+  deployId: String(process.env.DEPLOY_ID || 'local'),
+  buildId: String(process.env.BUILD_ID || 'local'),
+  deployUrl: String(process.env.DEPLOY_URL || ''),
+  deployPrimeUrl: String(process.env.DEPLOY_PRIME_URL || ''),
+  branch: String(process.env.BRANCH || ''),
+  reviewId: String(process.env.REVIEW_ID || ''),
+};
+
 await writeFile(
   path.join(ROOT, 'rc-revision.json'),
-  `${JSON.stringify({ revision, deployContext }, null, 2)}\n`,
+  `${JSON.stringify(releaseEvidence, null, 2)}\n`,
   'utf8',
 );
 
-const edgePath = path.join(ROOT, 'netlify', 'edge-functions', 'site-response.js');
-const edgeSource = await readFile(edgePath, 'utf8');
-if (process.env.COMMIT_REF && edgeSource.includes(EDGE_REVISION_PLACEHOLDER)) {
-  await writeFile(edgePath, edgeSource.replaceAll(EDGE_REVISION_PLACEHOLDER, revision), 'utf8');
-  console.log(`Injected Netlify COMMIT_REF into ${path.relative(ROOT, edgePath)}.`);
+const generatedHeadersPath = path.join(ROOT, '_headers');
+const nonProduction = deployContext === 'deploy-preview' || deployContext === 'branch-deploy';
+if (nonProduction) {
+  await writeFile(
+    generatedHeadersPath,
+    `/*\n  X-Robots-Tag: noindex, nofollow, noarchive\n\n/rc-revision.json\n  Cache-Control: no-store\n  X-Content-Type-Options: nosniff\n\n/edge-health.json\n  Cache-Control: no-store\n  X-Content-Type-Options: nosniff\n`,
+    'utf8',
+  );
+  console.log(`Wrote preview-only indexing protection for ${deployContext}.`);
+} else {
+  await rm(generatedHeadersPath, { force: true });
 }
 
 console.log(`Static-site preparation complete. Removed ${totalRemoved} legacy analytics script(s).`);
