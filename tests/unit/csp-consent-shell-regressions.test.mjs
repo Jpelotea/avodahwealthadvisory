@@ -47,11 +47,25 @@ test('Netlify Drawer exclusions remain exact-host, exact-signature, and exact-se
   assert.match(security, /applicationInlineStyles/);
 });
 
-test('every route waits for the protected release marker and tall screenshots are segmented', async () => {
+test('every route cache-busts and still requires the protected release marker', async () => {
   const source = await readSource('tests/e2e/release-candidate.spec.mjs');
+  assert.match(source, /function cacheBustedRoute\(route, attempt\)/);
+  assert.match(source, /__m10_revision_check/);
+  assert.match(source, /page\.goto\(cacheBustedRoute\(route, attempt\)/);
   assert.match(source, /headers\['x-avodah-rc-revision'\] === EXPECTED_MARKER/);
   assert.match(source, /headers\['x-avodah-deploy-context'\] === 'deploy-preview'/);
-  assert.match(source, /dimensions\.height <= 30_000/);
-  assert.match(source, /maxSegmentHeight = 16_000/);
+  assert.match(source, /repeated route checks observe the exact release marker/);
+});
+
+test('WebKit screenshots segment below the safe engine threshold and retain evidence metadata', async () => {
+  const source = await readSource('tests/e2e/release-candidate.spec.mjs');
+  assert.match(source, /WEBKIT_SAFE_SEGMENT_HEIGHT = 12_000/);
+  assert.match(source, /fullPageLimit = isWebKit \? WEBKIT_SAFE_SEGMENT_HEIGHT/);
+  assert.match(source, /maxSegmentHeight = isWebKit \? WEBKIT_SAFE_SEGMENT_HEIGHT/);
+  assert.match(source, /segmentHeight.*toBeLessThanOrEqual\(maxSegmentHeight\)/s);
+  assert.match(source, /safeSegmentLimit/);
+  assert.match(source, /revision: EXPECTED_COMMIT/);
+  assert.match(source, /workflowRun: WORKFLOW_RUN_ID/);
+  assert.match(source, /reviewStatus: 'automated-pass'/);
   assert.match(source, /segmentCount/);
 });
