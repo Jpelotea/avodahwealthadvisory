@@ -42,8 +42,7 @@ const LEGACY_REDIRECTS = {
   "/cookie-policy.html": "/cookies/",
 };
 
-const RELEASE_CANDIDATE_REVISION = "m8-deploy-recovery-v1";
-const DEPLOY_COMMIT_REF = "__NETLIFY_COMMIT_REF__";
+const RELEASE_CANDIDATE_REVISION = "m9-definitive-evidence-v1";
 const productionCanonical = (path) => `https://avodahwealthadvisory.netlify.app${path}`;
 
 const normalizeRootDocumentUrls = (html) =>
@@ -56,11 +55,17 @@ const normalizeRootDocumentUrls = (html) =>
 export default async (request, context) => {
   const requestUrl = new URL(request.url);
   const pathname = requestUrl.pathname;
-  const deployContext = Netlify.env.get("CONTEXT") || "unknown";
+  const deployContext = context.deploy?.context || "unknown";
+  const deployId = context.deploy?.id || "unknown";
 
-  if (pathname === "/rc-revision.json") {
+  if (pathname === "/edge-health.json") {
     return Response.json(
-      { revision: DEPLOY_COMMIT_REF, deployContext },
+      {
+        status: "ok",
+        releaseMarker: RELEASE_CANDIDATE_REVISION,
+        deployContext,
+        deployId,
+      },
       {
         headers: {
           "cache-control": "no-store",
@@ -114,6 +119,7 @@ export default async (request, context) => {
   headers.delete("content-length");
   if (nonProduction) headers.set("x-robots-tag", "noindex, nofollow, noarchive");
   headers.set("x-avodah-deploy-context", deployContext);
+  headers.set("x-avodah-deploy-id", deployId);
   headers.set("x-avodah-rc-revision", RELEASE_CANDIDATE_REVISION);
 
   return new Response(html, {
@@ -125,7 +131,7 @@ export default async (request, context) => {
 
 export const config = {
   path: "/*",
-  excludedPath: ["/api/*", "/.netlify/*"],
+  excludedPath: ["/api/*", "/.netlify/*", "/rc-revision.json"],
   method: "GET",
   onError: "bypass",
 };
