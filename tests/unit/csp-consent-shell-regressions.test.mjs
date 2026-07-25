@@ -38,9 +38,20 @@ test('Netlify Drawer exclusions remain exact-host, exact-signature, and exact-se
     assert.match(source, /previewHostname\.startsWith\('deploy-preview-8--'\)/);
     assert.match(source, /sha256-dH\+oOZOdDv\+MWU0F8bCZOoFHX0jFM4\+bwNqOKujbv90=/);
     assert.match(source, /sha256-ikgYIuM\/1wkyZ\+w23wP7pGyeh3RzH5XDMS3MqR2mWrY=/);
+    assert.match(source, /Refused to apply a stylesheet because its hash, its nonce, or 'unsafe-inline'/);
     assert.doesNotMatch(source, /\(frame-src\|inline style\)/i);
   }
   assert.match(releaseCandidate, /\[data-netlify-deploy-id\]/);
   assert.match(releaseCandidate, /iframe\[title=\"Netlify Drawer\"\]/);
   assert.match(releaseCandidate, /previewDrawerRemoved/);
+  assert.match(security, /applicationInlineStyles/);
+});
+
+test('every route waits for the protected release marker and tall screenshots are segmented', async () => {
+  const source = await readSource('tests/e2e/release-candidate.spec.mjs');
+  assert.match(source, /headers\['x-avodah-rc-revision'\] === EXPECTED_MARKER/);
+  assert.match(source, /headers\['x-avodah-deploy-context'\] === 'deploy-preview'/);
+  assert.match(source, /maxSegmentHeight = 16_000/);
+  assert.match(source, /segmentCount/);
+  assert.match(source, /Cannot take screenshot larger than 32767 pixels/);
 });
