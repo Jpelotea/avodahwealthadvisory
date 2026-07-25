@@ -1,0 +1,249 @@
+name: Milestone 11 Isolated Forms Fixture Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_fixture_deploy:
+        description: Type RUN_ISOLATED_FORMS_FIXTURE
+        required: true
+        type: string
+  pull_request:
+    branches: [main]
+    types: [synchronize]
+    paths:
+      - .github/forms-fixture-deploy-request
+
+permissions:
+  contents: read
+
+env:
+  EXPECTED_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+  EXPECTED_FORM_TEST_SITE_ID: e07260a5-6308-4f68-a41d-d26f267df9ab
+  FIXTURE_CONFIG: tests/netlify-forms-fixture/netlify.toml
+  FIXTURE_INDEX: qa/form-fixture/index.html
+  FIXTURE_CONFIRMATION: qa/form-fixture/confirmation.html
+
+jobs:
+  explicit-fixture-deployment-trigger:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      eligible: ${{ steps.gate.outputs.eligible }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_COMMIT }}
+          fetch-depth: 2
+      - name: Verify explicit fixture deployment request
+        id: gate
+        shell: bash
+        env:
+          CONFIRM_FIXTURE_DEPLOY: ${{ inputs.confirm_fixture_deploy }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          eligible=false
+          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ] && [ "${CONFIRM_FIXTURE_DEPLOY:-}" = "RUN_ISOLATED_FORMS_FIXTURE" ]; then
+            eligible=true
+          elif [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
+            message=$(git show -s --format=%B "$EXPECTED_COMMIT")
+            changed=$(git diff-tree --no-commit-id --name-only -r "$EXPECTED_COMMIT")
+            request=$(cat .github/forms-fixture-deploy-request 2>/dev/null || true)
+            if [[ "$PR_TITLE" == *"[run-forms-fixture]"* ]] \
+              && [[ "$message" == *"[run-forms-fixture]"* ]] \
+              && [ "$changed" = ".github/forms-fixture-deploy-request" ] \
+              && [ "$request" = "RUN_ISOLATED_FORMS_FIXTURE e07260a5-6308-4f68-a41d-d26f267df9ab" ]; then
+              eligible=true
+            fi
+          fi
+          echo "eligible=$eligible" >> "$GITHUB_OUTPUT"
+
+  deploy-and-verify-isolated-forms:
+    needs: explicit-fixture-deployment-trigger
+    if: needs.explicit-fixture-deployment-trigger.outputs.eligible == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      FORM_TEST_AUTH_TOKEN: ${{ secrets.NETLIFY_FORM_TEST_AUTH_TOKEN }}
+      FORM_TEST_SITE_ID: ${{ secrets.NETLIFY_FORM_TEST_SITE_ID }}
+      NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_FORM_TEST_AUTH_TOKEN }}
+      NETLIFY_SITE_ID: ${{ secrets.NETLIFY_FORM_TEST_SITE_ID }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_COMMIT }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install repository test dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Run protected preflight and safe project-access check
+        shell: bash
+        run: |
+          node scripts/forms-secret-preflight.mjs
+          node scripts/forms-netlify-access-check.mjs
+          node - <<'NODE'
+          const fs = require('fs');
+          const secret = JSON.parse(fs.readFileSync('test-results/forms/secrets-status.json', 'utf8'));
+          const access = JSON.parse(fs.readFileSync('test-results/forms/access-status.json', 'utf8'));
+          if (secret.status !== 'ready') throw new Error('Protected secret preflight is not ready.');
+          if (access.status !== 'ready' || access.netlifyAuthenticationSucceeded !== true || access.isolatedProjectAccessible !== true) {
+            throw new Error('Safe Netlify authentication or isolated-project access check failed.');
+          }
+          NODE
+
+      - name: Verify fixture inventory and create standalone configuration boundary
+        shell: bash
+        run: |
+          mkdir -p test-results/forms
+          node scripts/inspect-netlify-forms-fixture.mjs
+          fixture_root="$RUNNER_TEMP/m11-netlify-forms-fixture-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          rm -rf "$fixture_root"
+          mkdir -p "$fixture_root/dist"
+          cp "$GITHUB_WORKSPACE/$FIXTURE_CONFIG" "$fixture_root/netlify.toml"
+          cp "$GITHUB_WORKSPACE/$FIXTURE_INDEX" "$fixture_root/dist/index.html"
+          cp "$GITHUB_WORKSPACE/$FIXTURE_CONFIRMATION" "$fixture_root/dist/confirmation.html"
+          test -f "$fixture_root/netlify.toml"
+          test -f "$fixture_root/dist/index.html"
+          test -f "$fixture_root/dist/confirmation.html"
+          test ! -e "$fixture_root/dist/_redirects"
+          test ! -e "$fixture_root/dist/_headers"
+          test ! -e "$fixture_root/netlify/functions"
+          test ! -e "$fixture_root/netlify/edge-functions"
+          test ! -e "$RUNNER_TEMP/netlify.toml"
+          printf '%s\n' "$fixture_root" > test-results/forms/fixture-working-directory.txt
+          find "$fixture_root" -type f -printf '%P\n' | sort > test-results/forms/standalone-fixture-inventory.txt
+          expected=$(printf 'dist/confirmation.html\ndist/index.html\nnetlify.toml\n')
+          actual=$(cat test-results/forms/standalone-fixture-inventory.txt)
+          [ "$actual" = "$expected" ]
+
+      - name: Record Netlify CLI version and supported deploy flags
+        shell: bash
+        run: |
+          npx --yes netlify-cli@latest --version > test-results/forms/netlify-cli-version.txt
+          npx --yes netlify-cli@latest deploy --help > test-results/forms/netlify-cli-deploy-help.txt
+          for flag in --dir --site --auth --prod --no-build --skip-functions-cache --timeout --json; do
+            grep -q -- "$flag" test-results/forms/netlify-cli-deploy-help.txt
+          done
+          node - <<'NODE'
+          const fs = require('fs');
+          const help = fs.readFileSync('test-results/forms/netlify-cli-deploy-help.txt', 'utf8');
+          const access = JSON.parse(fs.readFileSync('test-results/forms/access-status.json', 'utf8'));
+          const fixtureRoot = fs.readFileSync('test-results/forms/fixture-working-directory.txt', 'utf8').trim();
+          const report = {
+            workflowWorkingDirectory: process.env.GITHUB_WORKSPACE,
+            originalDeployWorkingDirectory: `${process.env.GITHUB_WORKSPACE}/qa/form-fixture`,
+            originalConfigurationSelected: `${process.env.GITHUB_WORKSPACE}/netlify.toml`,
+            confirmedContaminationSource: 'repository-root netlify.toml selected by upward CLI configuration discovery',
+            standaloneDeploymentDirectory: fixtureRoot,
+            selectedConfigurationFile: `${fixtureRoot}/netlify.toml`,
+            repositoryRootConfigurationBypassed: true,
+            cliVersion: fs.readFileSync('test-results/forms/netlify-cli-version.txt', 'utf8').trim(),
+            configFlagSupported: /(?:^|\s)--config(?:\s|,|$)/m.test(help),
+            deployFlagsVerified: ['--dir','--site','--auth','--prod','--no-build','--skip-functions-cache','--timeout','--json'],
+            safeDeployCommand: 'netlify deploy --dir=dist --site=<isolated-site-id> --auth=<protected-secret> --prod --no-build --skip-functions-cache --timeout=600000 --json',
+            projectBuildSettingsPresent: access.projectBuildSettingsPresent,
+            configuredBuildCommandPresent: access.configuredBuildCommandPresent,
+            configuredPublishDirectory: access.configuredPublishDirectory,
+            configuredBaseDirectory: access.configuredBaseDirectory,
+            configuredFunctionsDirectory: access.configuredFunctionsDirectory,
+            buildPluginCount: access.buildPluginCount,
+          };
+          fs.writeFileSync('test-results/forms/configuration-source.json', JSON.stringify(report, null, 2));
+          NODE
+
+      - name: Deploy dedicated static fixture only
+        shell: bash
+        run: |
+          fixture_root=$(cat test-results/forms/fixture-working-directory.txt)
+          set +e
+          (
+            cd "$fixture_root"
+            npx --yes netlify-cli@latest deploy \
+              --dir=dist \
+              --site="$NETLIFY_SITE_ID" \
+              --auth="$NETLIFY_AUTH_TOKEN" \
+              --prod \
+              --no-build \
+              --skip-functions-cache \
+              --timeout=600000 \
+              --message="Milestone 11A isolated Forms fixture ${EXPECTED_COMMIT}" \
+              --json
+          ) > test-results/forms/deploy-raw.json 2> test-results/forms/deploy-stderr.log
+          deploy_exit=$?
+          set -e
+          if [ "$deploy_exit" -ne 0 ]; then
+            echo "::error::Isolated fixture deploy exited with status $deploy_exit"
+            exit "$deploy_exit"
+          fi
+          node - <<'NODE'
+          const fs = require('fs');
+          const raw = JSON.parse(fs.readFileSync('test-results/forms/deploy-raw.json', 'utf8'));
+          const safe = {
+            deployId: raw.deploy_id || raw.deployId || '',
+            url: raw.url || '',
+            deployUrl: raw.deploy_url || raw.deployUrl || '',
+            revision: process.env.EXPECTED_COMMIT,
+            isolatedSiteId: process.env.EXPECTED_FORM_TEST_SITE_ID,
+          };
+          if (!safe.deployId || !safe.url || !safe.deployUrl) throw new Error('Incomplete safe deployment metadata.');
+          fs.writeFileSync('test-results/forms/deploy-safe.json', JSON.stringify(safe, null, 2));
+          NODE
+
+      - name: Wait for terminal state and retrieve safe deployment metadata
+        shell: bash
+        run: |
+          deploy_id=$(node -e "console.log(require('./test-results/forms/deploy-safe.json').deployId)")
+          for attempt in $(seq 1 60); do
+            curl --silent --show-error --fail -H "Authorization: Bearer $NETLIFY_AUTH_TOKEN" \
+              "https://api.netlify.com/api/v1/deploys/$deploy_id" > test-results/forms/deploy-status-raw.json
+            state=$(node -e "console.log(require('./test-results/forms/deploy-status-raw.json').state || '')")
+            case "$state" in
+              ready|current) break ;;
+              error|failed|cancelled) echo "::error::Terminal deploy state: $state"; exit 1 ;;
+            esac
+            if [ "$attempt" -eq 60 ]; then echo "::error::Deploy did not reach a ready terminal state"; exit 1; fi
+            sleep 5
+          done
+
+      - name: Verify runtime and HTTP isolation before Forms tests
+        shell: bash
+        run: |
+          deploy_url=$(node -e "console.log(require('./test-results/forms/deploy-safe.json').deployUrl)")
+          curl --silent --show-error --fail --dump-header test-results/forms/fixture-response-headers.txt \
+            --output test-results/forms/fixture-response-body.html "$deploy_url/"
+          node scripts/verify-netlify-forms-fixture-http.mjs
+
+      - name: Retrieve and verify exactly six live Forms schemas
+        shell: bash
+        run: |
+          curl --silent --show-error --fail -H "Authorization: Bearer $NETLIFY_AUTH_TOKEN" \
+            "https://api.netlify.com/api/v1/sites/$NETLIFY_SITE_ID/forms" > test-results/forms/netlify-forms.json
+          curl --silent --show-error --fail -H "Authorization: Bearer $NETLIFY_AUTH_TOKEN" \
+            "https://api.netlify.com/api/v1/hooks?site_id=$NETLIFY_SITE_ID" > test-results/forms/site-hooks.json
+          node -e "const hooks=require('./test-results/forms/site-hooks.json'); if(hooks.length) throw new Error('Unexpected hooks are configured on the isolated project.')"
+          FORM_FIXTURE_HTML=qa/form-fixture/index.html \
+            NETLIFY_FORMS_JSON=test-results/forms/netlify-forms.json \
+            FORM_SCHEMA_REPORT=test-results/forms/schema-report.json \
+            node scripts/verify-isolated-form-schemas.mjs
+
+      - name: Run approved synthetic matrix and cleanup
+        shell: bash
+        run: |
+          npx playwright install --with-deps chromium
+          export ISOLATED_FORM_URL=$(node -e "console.log(require('./test-results/forms/deploy-safe.json').deployUrl)")
+          export SYNTHETIC_FORM_REPORT=test-results/forms/synthetic-submissions.json
+          node scripts/test-isolated-form-submissions.mjs
+
+      - name: Upload isolated Forms verification evidence
+        if: ${{ success() || failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: milestone-11a-isolated-forms-${{ env.EXPECTED_COMMIT }}-${{ github.run_attempt }}
+          path: |
+            test-results/forms
+            tests/netlify-forms-fixture
+            qa/form-fixture/index.html
+            qa/form-fixture/confirmation.html
+          if-no-files-found: error
+          retention-days: 30
