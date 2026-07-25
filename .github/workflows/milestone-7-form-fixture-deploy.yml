@@ -2,12 +2,15 @@ name: Milestone 9 Isolated Forms Verification
 
 on:
   workflow_dispatch:
+  push:
+    branches: [agent/blueprint-foundation]
 
 permissions:
   contents: read
 
 jobs:
   forms-secrets-preflight:
+    if: ${{ github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[run-isolated-forms]') }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:

@@ -77,7 +77,7 @@ test('evidence workflow emits ready and supports a preflight-only push without b
 
 test('isolated deployment is eligible only for the exact ready state', async () => {
   const workflow = await readFile(isolatedWorkflowUrl, 'utf8');
-  assert.match(workflow, /forms-secrets-preflight:/);
+  assert.match(workflow, /forms-secrets-preflight:\n\s+if: \$\{\{ github\.event_name == 'workflow_dispatch' \|\| contains\(github\.event\.head_commit\.message, '\[run-isolated-forms\]'\) \}\}/);
   assert.match(workflow, /outputs:\n\s+status: \$\{\{ steps\.forms-preflight\.outputs\.status \}\}/);
   assert.match(
     workflow,
