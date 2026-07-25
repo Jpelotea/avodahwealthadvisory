@@ -1,4 +1,4 @@
-/* Milestone 7: targeted browser-QA remediation. */
+/* Milestone 7 and 9: targeted browser-QA remediation. */
 
 /* Win over the legacy visibility guard's high-specificity !important rules. */
 body .advisory-pathways-home .advisory-pathway-card .service-number,
@@ -72,6 +72,31 @@ button {
   word-break: break-word;
 }
 
+/* FAQ expansion is class-based so strict CSP can keep style attributes blocked. */
+.faq-list details .faq-answer {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 220ms ease;
+}
+
+.faq-list details[open] .faq-answer,
+.faq-list details.is-open .faq-answer {
+  max-height: 200rem;
+}
+
+/* Consultation progress uses finite CSS states instead of element.style writes. */
+.progress-track[data-step="1"] #progress-bar {
+  width: 33.333%;
+}
+
+.progress-track[data-step="2"] #progress-bar {
+  width: 66.667%;
+}
+
+.progress-track[data-step="3"] #progress-bar {
+  width: 100%;
+}
+
 @media (max-width: 420px) {
   .site-header {
     gap: 8px;
@@ -114,5 +139,11 @@ button {
   .confirmation-actions .button,
   .form-actions .button {
     width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .faq-list details .faq-answer {
+    transition: none;
   }
 }
