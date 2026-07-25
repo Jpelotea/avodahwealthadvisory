@@ -57,13 +57,20 @@ test('every route cache-busts and still requires the protected release marker', 
   assert.match(source, /repeated route checks observe the exact release marker/);
 });
 
-test('WebKit screenshots segment below the safe engine threshold and retain evidence metadata', async () => {
+test('WebKit screenshots use bounded lossless segments with no gaps or overlaps', async () => {
   const source = await readSource('tests/e2e/release-candidate.spec.mjs');
+  assert.match(source, /import \{ PNG \} from 'pngjs'/);
   assert.match(source, /WEBKIT_SAFE_SEGMENT_HEIGHT = 12_000/);
-  assert.match(source, /fullPageLimit = isWebKit \? WEBKIT_SAFE_SEGMENT_HEIGHT/);
-  assert.match(source, /maxSegmentHeight = isWebKit \? WEBKIT_SAFE_SEGMENT_HEIGHT/);
-  assert.match(source, /segmentHeight.*toBeLessThanOrEqual\(maxSegmentHeight\)/s);
-  assert.match(source, /safeSegmentLimit/);
+  assert.match(source, /async function captureWebKitViewportSegments/);
+  assert.match(source, /window\.scrollTo\(0, y\)/);
+  assert.match(source, /PNG\.sync\.read\(buffer\)/);
+  assert.match(source, /PNG\.bitblt/);
+  assert.match(source, /documentStart/);
+  assert.match(source, /documentEnd/);
+  assert.match(source, /captureMode: 'viewport-scroll-crop'/);
+  assert.match(source, /toBeLessThanOrEqual\(WEBKIT_SAFE_SEGMENT_HEIGHT\)/);
+  assert.match(source, /segments must not overlap or leave gaps/);
+  assert.match(source, /segments must reach the full document height/);
   assert.match(source, /revision: EXPECTED_COMMIT/);
   assert.match(source, /workflowRun: WORKFLOW_RUN_ID/);
   assert.match(source, /reviewStatus: 'automated-pass'/);
