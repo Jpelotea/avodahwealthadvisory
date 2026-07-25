@@ -9,7 +9,7 @@ async function pollForSyntheticSubmissions({ attempts = 45, delayMs = 2_000 } = 
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     [verified, spam] = await Promise.all([listSubmissions('verified'), listSubmissions('spam')]);
     const references = new Set(
-      verified
+      [...verified, ...spam]
         .map(item => item?.data?.workflow_reference)
         .filter(reference => typeof reference === 'string' && reference.startsWith(runTag)),
     );
@@ -29,8 +29,11 @@ function matchesLeadOrReference(submission, leadSubmissionId, workflowReference)
 }
 
 function evaluateStoredResults(verified, spam) {
+  const storedRecords = [...verified, ...spam];
+  const verifiedIds = new Set(verified.map(item => item.id));
+  const spamIds = new Set(spam.map(item => item.id));
   for (const pending of pendingValid) {
-    const matchingSubmissions = verified.filter(item => matchesLeadOrReference(
+    const matchingSubmissions = storedRecords.filter(item => matchesLeadOrReference(
       item,
       pending.submitted.leadSubmissionId,
       pending.workflowReference,
@@ -89,6 +92,7 @@ function evaluateStoredResults(verified, spam) {
         workflow_reference: data.workflow_reference,
         campaignFieldsValid: campaignValid,
         matchingStoredSubmissions: matchingSubmissions.length,
+        storageState: verifiedIds.has(stored?.id) ? 'verified' : spamIds.has(stored?.id) ? 'spam' : 'not found',
         campaignFields: pending.formName === 'consultation'
           ? Object.fromEntries(Object.keys(formDefinitions.consultation.campaign).map(key => [key, data[key] ?? null]))
           : {},
@@ -98,7 +102,7 @@ function evaluateStoredResults(verified, spam) {
   }
 
   for (const pending of pendingDoubleClick) {
-    const submissions = verified.filter(item => matchesReference(item, pending.workflowReference));
+    const submissions = storedRecords.filter(item => matchesReference(item, pending.workflowReference));
     const ok = pending.capturedPostRequests <= 1 && submissions.length <= 1;
     recordResult({
       form: pending.formName,
@@ -114,7 +118,7 @@ function evaluateStoredResults(verified, spam) {
   }
 
   for (const pending of pendingSameReference) {
-    const submissions = verified.filter(item => matchesReference(item, pending.workflowReference));
+    const submissions = storedRecords.filter(item => matchesReference(item, pending.workflowReference));
     recordResult({
       form: pending.formName,
       test: 'same workflow reference resubmission',
