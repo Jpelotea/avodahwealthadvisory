@@ -32,16 +32,24 @@ const netlifyDrawerStyleHashes = [
   'sha256-ikgYIuM/1wkyZ+w23wP7pGyeh3RzH5XDMS3MqR2mWrY=',
 ];
 const webkitDrawerStyleMessage = "Refused to apply a stylesheet because its hash, its nonce, or 'unsafe-inline' does not appear in the style-src directive of the Content Security Policy.";
+let routeVerificationSequence = 0;
 
 async function writeJson(name, value) {
   await fs.mkdir('test-results/evidence', { recursive: true });
   await fs.writeFile(path.join('test-results/evidence', name), JSON.stringify(value, null, 2));
 }
 
+function cacheBustedRoute(route, attempt) {
+  const url = new URL(route, 'https://release-check.invalid');
+  routeVerificationSequence += 1;
+  url.searchParams.set('__m10_revision_check', `${routeVerificationSequence}-${attempt}`);
+  return `${url.pathname}${url.search}${url.hash}`;
+}
+
 async function gotoReady(page, route) {
   let response = null;
   for (let attempt = 1; attempt <= 12; attempt += 1) {
-    response = await page.goto(route, { waitUntil: 'domcontentloaded', timeout: 60_000 });
+    response = await page.goto(cacheBustedRoute(route, attempt), { waitUntil: 'domcontentloaded', timeout: 60_000 });
     await page.waitForLoadState('load', { timeout: 15_000 }).catch(() => {});
     const headers = response?.headers() || {};
     const exactRoute = headers['x-avodah-rc-revision'] === EXPECTED_MARKER && headers['x-avodah-deploy-context'] === 'deploy-preview';
@@ -146,6 +154,25 @@ test('legacy routes redirect to clean routes', async ({ page }) => {
 test('preview remains non-indexable', async ({ request }) => {
   const response = await request.get('/');
   expect((response.headers()['x-robots-tag'] || '').toLowerCase()).toContain('noindex');
+});
+
+test('repeated route checks observe the exact release marker', async ({ page }, testInfo) => {
+  const observations = [];
+  for (let iteration = 1; iteration <= 3; iteration += 1) {
+    const response = await gotoReady(page, '/consultation/');
+    const headers = response.headers();
+    const observation = {
+      iteration,
+      url: response.url(),
+      revision: headers['x-avodah-rc-revision'] || '',
+      context: headers['x-avodah-deploy-context'] || '',
+    };
+    observations.push(observation);
+    expect(observation.revision).toBe(EXPECTED_MARKER);
+    expect(observation.context).toBe('deploy-preview');
+    expect(new URL(observation.url).searchParams.has('__m10_revision_check')).toBe(true);
+  }
+  await writeJson(`${testInfo.project.name}-repeated-route-revision.json`, observations);
 });
 
 test('consent blocks analytics before acceptance and after rejection', async ({ page }, testInfo) => {
