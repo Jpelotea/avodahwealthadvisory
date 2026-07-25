@@ -79,7 +79,9 @@ jobs:
             allowedProtectedSecretNames: ['NETLIFY_FORM_TEST_AUTH_TOKEN', 'NETLIFY_FORM_TEST_SITE_ID'],
             forbiddenEnvironmentVariableNamesPresent: forbiddenNames,
             fixtureDirectory: 'qa/form-fixture',
+            fixtureWorkingDirectoryIsolated: true,
             productionNetlifyFunctionsIncluded: false,
+            productionEdgeFunctionsIncluded: false,
             productionWebhookConfigured: false,
             GoogleSheetsConfigured: false,
             GoogleAppsScriptConfigured: false,
@@ -108,13 +110,17 @@ jobs:
       - name: Deploy only the isolated form fixture
         shell: bash
         run: |
-          npx --yes netlify-cli@latest deploy \
-            --dir=qa/form-fixture \
-            --site="$NETLIFY_SITE_ID" \
-            --auth="$NETLIFY_AUTH_TOKEN" \
-            --prod \
-            --message="Milestone 11 isolated form fixture ${EXPECTED_COMMIT}" \
-            --json > test-results/forms/deploy-raw.json
+          (
+            cd qa/form-fixture
+            npx --yes netlify-cli@latest deploy \
+              --dir=. \
+              --site="$NETLIFY_SITE_ID" \
+              --auth="$NETLIFY_AUTH_TOKEN" \
+              --prod \
+              --no-build \
+              --message="Milestone 11 isolated form fixture ${EXPECTED_COMMIT}" \
+              --json
+          ) > test-results/forms/deploy-raw.json
 
           node - <<'NODE'
           const fs = require('fs');
@@ -131,7 +137,7 @@ jobs:
           fs.writeFileSync('test-results/forms/deploy-safe.json', JSON.stringify(safe, null, 2));
           NODE
 
-      - name: Wait for terminal isolated deployment state
+      - name: Wait for terminal isolated deployment state and reject inherited runtime
         shell: bash
         run: |
           deploy_id=$(node -e "console.log(require('./test-results/forms/deploy-safe.json').deployId)")
@@ -158,6 +164,10 @@ jobs:
           const fs = require('fs');
           const safe = JSON.parse(fs.readFileSync('test-results/forms/deploy-safe.json', 'utf8'));
           const status = JSON.parse(fs.readFileSync('test-results/forms/deploy-status-raw.json', 'utf8'));
+          const functions = status.available_functions || [];
+          const edgePresent = status.edge_functions_present === true;
+          if (status.site_id !== process.env.EXPECTED_NETLIFY_SITE_ID) throw new Error('Deploy record does not belong to the approved isolated site.');
+          if (functions.length || edgePresent) throw new Error(`Isolated deploy inherited runtime code: functions=${functions.length}, edge=${edgePresent}`);
           Object.assign(safe, {
             state: status.state,
             context: status.context,
@@ -165,10 +175,17 @@ jobs:
             updatedAt: status.updated_at,
             publishedAt: status.published_at,
             commitRef: status.commit_ref || null,
+            deployTitle: status.title || '',
+            availableFunctionCount: functions.length,
+            edgeFunctionsPresent: edgePresent,
             productionWebsiteContacted: false,
           });
           fs.writeFileSync('test-results/forms/deploy-safe.json', JSON.stringify(safe, null, 2));
-          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Isolated Forms deployment\n\n- URL: ${safe.url}\n- Immutable URL: ${safe.deployUrl}\n- Deploy ID: ${safe.deployId}\n- Revision: ${safe.revision}\n- State: ${safe.state}\n- Production website contacted: no\n`);
+          const isolation = JSON.parse(fs.readFileSync('test-results/forms/production-isolation.json', 'utf8'));
+          isolation.productionNetlifyFunctionsIncluded = functions.length > 0;
+          isolation.productionEdgeFunctionsIncluded = edgePresent;
+          fs.writeFileSync('test-results/forms/production-isolation.json', JSON.stringify(isolation, null, 2));
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Isolated Forms deployment\n\n- URL: ${safe.url}\n- Immutable URL: ${safe.deployUrl}\n- Deploy ID: ${safe.deployId}\n- Revision: ${safe.revision}\n- State: ${safe.state}\n- Functions: ${safe.availableFunctionCount}\n- Edge Functions: ${safe.edgeFunctionsPresent ? 'present' : 'none'}\n- Production website contacted: no\n`);
           NODE
 
       - name: Verify isolated notice, noindex, and no-store headers
