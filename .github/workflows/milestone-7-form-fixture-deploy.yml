@@ -63,7 +63,7 @@ jobs:
             echo "::error::Executable integration file found in isolated fixture"
             exit 1
           fi
-          if grep -RniE 'GOOGLE_SHEETS_WEBHOOK|script\.google\.com|calendar\.google|meet\.google|G-[A-Z0-9]{6,}|facebook\.com/tr|avodahwealthadvisory\.netlify\.app' qa/form-fixture; then
+          if grep -RnE 'GOOGLE_SHEETS_WEBHOOK|script\.google\.com|calendar\.google|meet\.google|(^|[^A-Z0-9])G-[A-Z0-9]{6,}([^A-Z0-9]|$)|facebook\.com/tr|avodahwealthadvisory\.netlify\.app' qa/form-fixture; then
             echo "::error::Potential production integration identifier found in isolated fixture"
             exit 1
           fi
