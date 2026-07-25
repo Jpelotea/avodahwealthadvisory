@@ -1,4 +1,4 @@
-async function pollForSyntheticSubmissions({ attempts = 120, delayMs = 5_000 } = {}) {
+async function pollForSyntheticSubmissions({ attempts = 45, delayMs = 2_000 } = {}) {
   const requiredReferences = new Set([
     ...pendingValid.map(item => item.workflowReference),
     ...pendingDoubleClick.filter(item => item.capturedPostRequests > 0).map(item => item.workflowReference),
@@ -30,11 +30,21 @@ function matchesLeadOrReference(submission, leadSubmissionId, workflowReference)
 
 function evaluateStoredResults(verified, spam) {
   for (const pending of pendingValid) {
-    const stored = verified.find(item => matchesLeadOrReference(
+    const matchingSubmissions = verified.filter(item => matchesLeadOrReference(
       item,
       pending.submitted.leadSubmissionId,
       pending.workflowReference,
     ));
+    const desiredMarketingValue = pending.marketingAccepted ? 'Yes' : 'No';
+    const stored = matchingSubmissions.find(item => {
+      const candidate = item?.data || {};
+      const candidateCampaignValid = pending.formName !== 'consultation'
+        || Object.entries(formDefinitions.consultation.campaign).every(([key, value]) => candidate[key] === value);
+      return candidate.processing_consent === 'Yes'
+        && candidate.consent === 'Yes'
+        && candidate.marketing_consent === desiredMarketingValue
+        && candidateCampaignValid;
+    }) || matchingSubmissions[0];
     const data = stored?.data || {};
     const timestampValid = !Number.isNaN(Date.parse(data.consent_recorded_at || ''));
     const versionsValid = data.processing_consent_version === 'processing-consent-v1-2026-07-25'
@@ -43,7 +53,7 @@ function evaluateStoredResults(verified, spam) {
       || Object.entries(formDefinitions.consultation.campaign).every(([key, value]) => data[key] === value);
     const consentSeparated = data.processing_consent === 'Yes'
       && data.consent === 'Yes'
-      && data.marketing_consent === (pending.marketingAccepted ? 'Yes' : 'No');
+      && data.marketing_consent === desiredMarketingValue;
     const urlSafe = sensitiveUrlKeys(pending.submitted.confirmationUrl).length === 0;
     const ok = pending.canonicalConfirmation
       && Boolean(stored)
@@ -78,6 +88,10 @@ function evaluateStoredResults(verified, spam) {
         consent_recorded_at: data.consent_recorded_at,
         workflow_reference: data.workflow_reference,
         campaignFieldsValid: campaignValid,
+        matchingStoredSubmissions: matchingSubmissions.length,
+        campaignFields: pending.formName === 'consultation'
+          ? Object.fromEntries(Object.keys(formDefinitions.consultation.campaign).map(key => [key, data[key] ?? null]))
+          : {},
       },
       cleanup: stored ? 'pending' : 'not found',
     }, ok);
