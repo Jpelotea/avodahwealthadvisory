@@ -4,10 +4,18 @@ import fs from 'node:fs/promises';
 const expectedCommit = process.env.EXPECTED_COMMIT || '';
 const expectedMarker = process.env.EXPECTED_RC_REVISION || 'm9-definitive-evidence-v1';
 const priorityRoutes = ['/', '/consultation/', '/client-support/', '/careers/apply/', '/system-error.html'];
+const previewHostname = new URL(process.env.PLAYWRIGHT_BASE_URL || 'https://invalid.example').hostname;
+const netlifyToolbarStyleHash = 'sha256-dH+oOZOdDv+MWU0F8bCZOoFHX0jFM4+bwNqOKujbv90=';
 
 async function writeEvidence(name, data) {
   await fs.mkdir('test-results/evidence', { recursive: true });
   await fs.writeFile(`test-results/evidence/${name}`, `${JSON.stringify(data, null, 2)}\n`, 'utf8');
+}
+
+function isExactPreviewToolbarNoise(text) {
+  const toolbarStyleViolation = previewHostname.startsWith('deploy-preview-8--') &&
+    /Applying inline style violates/i.test(text) && text.includes(netlifyToolbarStyleHash);
+  return /app\.netlify\.com|deployID=|Source: position:fixed/i.test(text) || toolbarStyleViolation;
 }
 
 test('release endpoint, Edge health, and preview headers identify the exact revision', async ({ request }, testInfo) => {
@@ -46,12 +54,12 @@ test('release endpoint, Edge health, and preview headers identify the exact revi
 for (const route of priorityRoutes) {
   test(`${route} operates under the strict application CSP`, async ({ page }, testInfo) => {
     const cspErrors = [];
+    const previewToolbarNoise = [];
     page.on('console', message => {
-      if (message.type() === 'error' && /content-security-policy|refused to execute|refused to load/i.test(message.text())) {
-        const text = message.text();
-        const previewToolbarNoise = /app\.netlify\.com|deployID=|frame-src|position:fixed/i.test(text);
-        if (!previewToolbarNoise) cspErrors.push(text);
-      }
+      if (message.type() !== 'error' || !/content-security-policy|refused to execute|refused to load/i.test(message.text())) return;
+      const text = message.text();
+      if (isExactPreviewToolbarNoise(text)) previewToolbarNoise.push(text);
+      else cspErrors.push(text);
     });
 
     const response = await page.goto(route, { waitUntil: 'domcontentloaded', timeout: 60_000 });
@@ -79,6 +87,7 @@ for (const route of priorityRoutes) {
       applicationInlineHandlers,
       staticAnalyticsLoaders,
       cspErrors,
+      previewToolbarNoise,
     });
     expect(cspErrors).toEqual([]);
   });
