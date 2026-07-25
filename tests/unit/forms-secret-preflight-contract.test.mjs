@@ -87,4 +87,7 @@ test('isolated deployment is eligible only for the exact ready state', async () 
     workflow,
     /deploy-and-verify-isolated-forms:[\s\S]{0,250}if:\s*always\(\)/,
   );
+  assert.ok(workflow.includes("grep -RnE 'GOOGLE_SHEETS_WEBHOOK"));
+  assert.ok(workflow.includes('(^|[^A-Z0-9])G-[A-Z0-9]{6,}([^A-Z0-9]|$)'));
+  assert.doesNotMatch(workflow, /grep -RniE/);
 });
