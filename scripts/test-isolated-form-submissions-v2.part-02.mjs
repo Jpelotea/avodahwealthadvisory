@@ -1,5 +1,3 @@
-}
-
 async function verifyMissingRequired(context, formName) {
   await withPage(context, async page => {
     const posts = [];
