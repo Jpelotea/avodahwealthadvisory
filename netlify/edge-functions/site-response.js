@@ -82,6 +82,20 @@ const normalizeRootDocumentUrls = (html) =>
 export default async (request, context) => {
   const requestUrl = new URL(request.url);
   const pathname = requestUrl.pathname;
+  const deployContext = Netlify.env.get("CONTEXT") || "unknown";
+
+  if (pathname === "/rc-revision.json") {
+    const revision = Netlify.env.get("COMMIT_REF") || "unknown";
+    return Response.json(
+      { revision, deployContext },
+      {
+        headers: {
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff",
+        },
+      },
+    );
+  }
 
   const redirectTarget = LEGACY_REDIRECTS[pathname];
   if (redirectTarget) {
@@ -97,7 +111,6 @@ export default async (request, context) => {
   if (!contentType.includes("text/html")) return response;
 
   let html = stripLegacyAnalytics(await response.text());
-  const deployContext = Netlify.env.get("CONTEXT") || "";
   const nonProduction = deployContext === "branch-deploy" || deployContext === "deploy-preview";
 
   if (sourcePath) {
@@ -127,7 +140,7 @@ export default async (request, context) => {
   const headers = new Headers(response.headers);
   headers.delete("content-length");
   if (nonProduction) headers.set("x-robots-tag", "noindex, nofollow, noarchive");
-  headers.set("x-avodah-deploy-context", deployContext || "unknown");
+  headers.set("x-avodah-deploy-context", deployContext);
   headers.set("x-avodah-rc-revision", RELEASE_CANDIDATE_REVISION);
 
   return new Response(html, {
