@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { PNG } from 'pngjs';
 
 const CONSENT_STORAGE_KEY = 'avodah_cookie_preferences';
 const EXPECTED_MARKER = process.env.EXPECTED_RC_REVISION || 'm9-definitive-evidence-v1';
@@ -321,6 +322,80 @@ test('cookie dialog traps focus, closes with Escape, and restores focus', async 
   await expect(settings).toBeFocused();
 });
 
+function cropPng(buffer, viewportWidthCss, viewportHeightCss, cropTopCss, cropHeightCss) {
+  const source = PNG.sync.read(buffer);
+  const scaleX = source.width / viewportWidthCss;
+  const scaleY = source.height / viewportHeightCss;
+  const cropTop = Math.max(0, Math.round(cropTopCss * scaleY));
+  const cropHeight = Math.max(1, Math.min(source.height - cropTop, Math.round(cropHeightCss * scaleY)));
+  const output = new PNG({ width: source.width, height: cropHeight });
+  PNG.bitblt(source, output, 0, cropTop, source.width, cropHeight, 0, 0);
+  return { buffer: PNG.sync.write(output), pixelWidth: source.width, pixelHeight: cropHeight, scaleX, scaleY };
+}
+
+async function captureWebKitViewportSegments(page, directory, name, dimensions, testInfo) {
+  const viewport = page.viewportSize();
+  if (!viewport) throw new Error('WebKit screenshot viewport is unavailable.');
+  const fixedInset = await page.evaluate(() => {
+    const header = document.querySelector('.site-header, .intake-header, header');
+    if (!header) return 0;
+    const position = getComputedStyle(header).position;
+    return position === 'fixed' || position === 'sticky' ? Math.ceil(header.getBoundingClientRect().height) : 0;
+  });
+  const segments = [];
+  let documentStart = 0;
+  let segmentNumber = 1;
+
+  while (documentStart < dimensions.height) {
+    const desiredScroll = segmentNumber === 1 ? 0 : Math.max(0, documentStart - fixedInset);
+    const maxScroll = Math.max(0, dimensions.height - viewport.height);
+    const scrollTarget = Math.min(desiredScroll, maxScroll);
+    const actualScroll = await page.evaluate(y => {
+      window.scrollTo(0, y);
+      return new Promise(resolve => requestAnimationFrame(() => resolve(window.scrollY)));
+    }, scrollTarget);
+    const cropTop = Math.max(0, documentStart - actualScroll);
+    const availableHeight = Math.max(1, viewport.height - cropTop);
+    const documentHeight = Math.min(availableHeight, dimensions.height - documentStart);
+    const documentEnd = documentStart + documentHeight;
+    const filename = `${name}-part-${segmentNumber}.png`;
+    const viewportPng = await page.screenshot({ animations: 'disabled' });
+    const cropped = cropPng(viewportPng, viewport.width, viewport.height, cropTop, documentHeight);
+    expect(documentHeight, `${filename} exceeds the safe WebKit segment threshold`).toBeLessThanOrEqual(WEBKIT_SAFE_SEGMENT_HEIGHT);
+    await fs.writeFile(`${directory}/${filename}`, cropped.buffer);
+    segments.push({
+      filename: `${testInfo.project.name}/${path.basename(directory)}/${filename}`,
+      segment: segmentNumber,
+      segmentCount: 0,
+      y: documentStart,
+      height: documentHeight,
+      documentStart,
+      documentEnd,
+      scrollY: actualScroll,
+      cropTop,
+      fixedInset,
+      pixelWidth: cropped.pixelWidth,
+      pixelHeight: cropped.pixelHeight,
+      safeSegmentLimit: WEBKIT_SAFE_SEGMENT_HEIGHT,
+      captureMode: 'viewport-scroll-crop',
+    });
+    if (documentEnd <= documentStart) throw new Error(`${filename} did not advance the WebKit document range.`);
+    documentStart = documentEnd;
+    segmentNumber += 1;
+  }
+
+  const segmentCount = segments.length;
+  segments.forEach((segment, index) => {
+    segment.segment = index + 1;
+    segment.segmentCount = segmentCount;
+    const expectedStart = index === 0 ? 0 : segments[index - 1].documentEnd;
+    expect(segment.documentStart, `${name} WebKit segments must not overlap or leave gaps`).toBe(expectedStart);
+  });
+  expect(segments.at(-1)?.documentEnd, `${name} WebKit segments must reach the full document height`).toBe(dimensions.height);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  return segments;
+}
+
 async function capturePageScreenshots(page, directory, name, testInfo) {
   const dimensions = await page.evaluate(() => ({
     width: Math.max(document.documentElement.scrollWidth, document.documentElement.clientWidth),
@@ -333,8 +408,10 @@ async function capturePageScreenshots(page, directory, name, testInfo) {
     expect(dimensions.height, `${name} full-page screenshot exceeds the safe ${testInfo.project.name} limit`).toBeLessThanOrEqual(fullPageLimit);
     const filename = `${name}.png`;
     await page.screenshot({ path: `${directory}/${filename}`, fullPage: true, animations: 'disabled' });
-    return [{ filename: `${testInfo.project.name}/${path.basename(directory)}/${filename}`, segment: 1, segmentCount: 1, y: 0, height: dimensions.height, safeSegmentLimit: fullPageLimit }];
+    return [{ filename: `${testInfo.project.name}/${path.basename(directory)}/${filename}`, segment: 1, segmentCount: 1, y: 0, height: dimensions.height, documentStart: 0, documentEnd: dimensions.height, safeSegmentLimit: fullPageLimit, captureMode: 'full-page' }];
   }
+
+  if (isWebKit) return captureWebKitViewportSegments(page, directory, name, dimensions, testInfo);
 
   const segments = [];
   const count = Math.ceil(dimensions.height / maxSegmentHeight);
@@ -348,7 +425,7 @@ async function capturePageScreenshots(page, directory, name, testInfo) {
       clip: { x: 0, y, width: Math.min(dimensions.width, page.viewportSize().width), height: segmentHeight },
       animations: 'disabled',
     });
-    segments.push({ filename: `${testInfo.project.name}/${path.basename(directory)}/${filename}`, segment: index + 1, segmentCount: count, y, height: segmentHeight, safeSegmentLimit: maxSegmentHeight });
+    segments.push({ filename: `${testInfo.project.name}/${path.basename(directory)}/${filename}`, segment: index + 1, segmentCount: count, y, height: segmentHeight, documentStart: y, documentEnd: y + segmentHeight, safeSegmentLimit: maxSegmentHeight, captureMode: 'document-clip' });
   }
   return segments;
 }
