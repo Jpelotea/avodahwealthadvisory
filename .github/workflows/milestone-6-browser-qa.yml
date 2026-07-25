@@ -47,7 +47,7 @@ jobs:
           retention-days: 30
 
   synchronization-isolation:
-    if: github.event_name != 'push' || !contains(github.event.head_commit.message, '[preflight-only]')
+    if: ${{ !contains(format('{0} {1}', github.event.head_commit.message, github.event.pull_request.title), '[preflight-only]') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

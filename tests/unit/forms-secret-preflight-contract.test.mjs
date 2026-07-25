@@ -71,7 +71,7 @@ test('evidence workflow emits ready and supports a preflight-only push without b
   const workflow = await readFile(evidenceWorkflowUrl, 'utf8');
   assert.match(workflow, /id: forms-preflight\n\s+run: node scripts\/forms-secret-preflight\.mjs/);
   assert.match(workflow, /status: \$\{\{ steps\.forms-preflight\.outputs\.status \}\}/);
-  assert.match(workflow, /contains\(github\.event\.head_commit\.message, '\[preflight-only\]'\)/);
+  assert.match(workflow, /if: \$\{\{ !contains\(format\('\{0\} \{1\}', github\.event\.head_commit\.message, github\.event\.pull_request\.title\), '\[preflight-only\]'\) \}\}/);
   assert.doesNotMatch(workflow, /status=configured/);
 });
 
