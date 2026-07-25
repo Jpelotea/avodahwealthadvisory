@@ -45,6 +45,7 @@ const LEGACY_REDIRECTS = {
 };
 
 const RELEASE_CANDIDATE_REVISION = "m8-deploy-recovery-v1";
+const DEPLOY_COMMIT_REF = "__NETLIFY_COMMIT_REF__";
 const GA_MEASUREMENT_ID = "G-HV9X54P7NT";
 const productionCanonical = (path) => `https://avodahwealthadvisory.netlify.app${path}`;
 
@@ -85,9 +86,8 @@ export default async (request, context) => {
   const deployContext = Netlify.env.get("CONTEXT") || "unknown";
 
   if (pathname === "/rc-revision.json") {
-    const revision = Netlify.env.get("COMMIT_REF") || "unknown";
     return Response.json(
-      { revision, deployContext },
+      { revision: DEPLOY_COMMIT_REF, deployContext },
       {
         headers: {
           "cache-control": "no-store",
