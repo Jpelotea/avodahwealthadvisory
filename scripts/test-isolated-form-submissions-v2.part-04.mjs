@@ -1,3 +1,17 @@
+const nativeFetch = globalThis.fetch;
+globalThis.fetch = async (...args) => {
+  let lastError = null;
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      return await nativeFetch(...args);
+    } catch (error) {
+      lastError = error;
+      if (attempt < 3) await sleep(1_500 * attempt);
+    }
+  }
+  throw lastError;
+};
+
 const browser = await chromium.launch({ headless: true });
 const context = await browser.newContext();
 context.on('request', request => {
@@ -18,15 +32,15 @@ try {
     : Object.keys(formDefinitions);
   for (const [formIndex, formName] of formNames.entries()) {
     if (!formDefinitions[formName]) throw new Error(`Unknown synthetic form name: ${formName}`);
-    for (const operation of [
-      () => verifyMissingRequired(context, formName),
-      () => verifyMissingProcessingConsent(context, formName),
-      () => submitValidAndVerifyNavigation(context, formName, false, { exerciseNavigation: true }),
-      () => submitValidAndVerifyNavigation(context, formName, true),
-      () => verifyDoubleClick(context, formName),
-      () => verifySameReferenceResubmission(context, formName),
-      () => verifyHoneypot(formName),
-      () => verifyConfirmationRoute(formName),
+    for (const [operationName, operation] of [
+      ['missing required field', () => verifyMissingRequired(context, formName)],
+      ['missing processing consent', () => verifyMissingProcessingConsent(context, formName)],
+      ['marketing declined and navigation', () => submitValidAndVerifyNavigation(context, formName, false, { exerciseNavigation: true })],
+      ['marketing accepted', () => submitValidAndVerifyNavigation(context, formName, true)],
+      ['double-click submit', () => verifyDoubleClick(context, formName)],
+      ['same workflow reference', () => verifySameReferenceResubmission(context, formName)],
+      ['honeypot', () => verifyHoneypot(formName)],
+      ['confirmation route', () => verifyConfirmationRoute(formName)],
     ]) {
       try {
         await operation();
@@ -34,10 +48,10 @@ try {
         passed = false;
         results.push({
           form: formName,
-          test: 'unexpected test-harness exception',
+          test: `unexpected test-harness exception — ${operationName}`,
           submissionId: null,
           expected: 'test completes with structured evidence',
-          actual: { error: String(error?.message || error) },
+          actual: { error: String(error?.message || error), operationName },
           result: 'fail',
           cleanup: 'pending scan',
         });
