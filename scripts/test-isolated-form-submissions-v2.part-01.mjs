@@ -9,6 +9,12 @@ const runTag = `M11-TEST-${process.env.GITHUB_RUN_ID || Date.now()}`;
 const isolatedHost = baseUrl ? new URL(baseUrl).host : '';
 const confirmationPaths = new Set(['/confirmation', '/confirmation.html']);
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+const perFormCooldownMs = Number(process.env.SYNTHETIC_FORM_COOLDOWN_MS || 60_000);
+
+function syntheticEmail(marker) {
+  const slug = String(marker).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(-48);
+  return `m11-${slug}@example.invalid`;
+}
 
 if (!baseUrl || !siteId || !authToken) {
   throw new Error('ISOLATED_FORM_URL, NETLIFY_SITE_ID, and NETLIFY_AUTH_TOKEN are required.');
@@ -18,7 +24,7 @@ const formDefinitions = {
   consultation: {
     values: marker => ({
       full_name: `${marker} — NOT A REAL CLIENT`,
-      email: 'test-m11@example.invalid',
+      email: syntheticEmail(marker),
       mobile_number: '09170000000',
       location: 'TEST LOCATION',
       inquiry_type: 'Financial planning',
@@ -43,7 +49,7 @@ const formDefinitions = {
       primary_need: 'Synthetic financial planning need',
       service_path: 'Synthetic service path',
       full_name: `${marker} — NOT A REAL CLIENT`,
-      email: 'test-m11@example.invalid',
+      email: syntheticEmail(marker),
       mobile_number: '09170000000',
       location: 'TEST LOCATION',
       preferred_contact_method: 'Online',
@@ -53,14 +59,14 @@ const formDefinitions = {
   },
   'consultation-recovery': {
     values: marker => ({
-      email: 'test-m11@example.invalid',
+      email: syntheticEmail(marker),
       workflow_token: `${marker}-NOT-A-REAL-TOKEN`,
     }),
   },
   'client-support': {
     values: marker => ({
       full_name: `${marker} — NOT A REAL CLIENT`,
-      email: 'test-m11@example.invalid',
+      email: syntheticEmail(marker),
       mobile_number: '09170000000',
       category: 'Policy support',
       description: 'Synthetic Milestone 11 isolated support record',
@@ -69,7 +75,7 @@ const formDefinitions = {
   'recruitment-application': {
     values: marker => ({
       full_name: `${marker} — NOT A REAL APPLICANT`,
-      email: 'test-m11@example.invalid',
+      email: syntheticEmail(marker),
       mobile_number: '09170000000',
       role: 'Synthetic Test Role',
       experience_summary: 'Synthetic Milestone 11 isolated recruitment record',
@@ -78,7 +84,7 @@ const formDefinitions = {
   'general-inquiry': {
     values: marker => ({
       full_name: `${marker} — NOT A REAL CLIENT`,
-      email: 'test-m11@example.invalid',
+      email: syntheticEmail(marker),
       mobile_number: '09170000000',
       subject: 'Synthetic Milestone 11 inquiry',
       message: 'Synthetic Milestone 11 isolated Forms verification',
@@ -238,3 +244,4 @@ async function submitPrepared(page, form) {
     confirmationPath: new URL(page.url()).pathname,
     reachedConfirmation,
   };
+}
