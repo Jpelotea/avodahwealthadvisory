@@ -86,10 +86,12 @@ test('isolated deployment is eligible only for exact ready and excludes reposito
   assert.doesNotMatch(workflow, /deploy-and-verify-isolated-forms:[\s\S]{0,250}if:\s*always\(\)/);
   assert.match(workflow, /cd qa\/form-fixture/);
   assert.match(workflow, /--dir=\.\s+\\/);
+  assert.match(workflow, /--functions=empty-functions/);
+  assert.match(workflow, /--skip-functions-cache/);
   assert.match(workflow, /--no-build/);
   assert.match(workflow, /available_functions \|\| \[\]/);
   assert.match(workflow, /edge_functions_present === true/);
-  assert.match(workflow, /functions\.length \|\| edgePresent/);
+  assert.match(workflow, /functions\.length \|\| edge/);
   assert.match(workflow, /status\.site_id !== process\.env\.EXPECTED_NETLIFY_SITE_ID/);
   assert.ok(workflow.includes("grep -RnE 'GOOGLE_SHEETS_WEBHOOK"));
   assert.ok(workflow.includes('(^|[^A-Z0-9])G-[A-Z0-9]{6,}([^A-Z0-9]|$)'));
