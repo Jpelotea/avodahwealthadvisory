@@ -7,6 +7,7 @@ import {
   evaluateFormsSecretPreflight,
 } from '../../scripts/forms-secret-preflight.mjs';
 
+// The temporary PR title marker makes the isolated verification run observable without weakening its exact-ready gate.
 const evidenceWorkflowUrl = new URL('../../.github/workflows/milestone-6-browser-qa.yml', import.meta.url);
 const isolatedWorkflowUrl = new URL('../../.github/workflows/milestone-7-form-fixture-deploy.yml', import.meta.url);
 
