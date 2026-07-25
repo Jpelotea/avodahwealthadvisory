@@ -9,6 +9,9 @@ on:
 permissions:
   contents: read
 
+env:
+  EXPECTED_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+
 jobs:
   forms-secrets-preflight:
     if: ${{ github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.title, '[run-isolated-forms]') }}
@@ -22,6 +25,8 @@ jobs:
       EXPECTED_FORM_TEST_SITE_ID: e07260a5-6308-4f68-a41d-d26f267df9ab
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_COMMIT }}
       - name: Verify protected isolated test credentials
         id: forms-preflight
         run: node scripts/forms-secret-preflight.mjs
@@ -29,7 +34,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: milestone-11-isolated-forms-preflight-${{ github.sha }}-${{ github.run_attempt }}
+          name: milestone-11-isolated-forms-preflight-${{ env.EXPECTED_COMMIT }}-${{ github.run_attempt }}
           path: test-results/forms/secrets-status.json
           if-no-files-found: error
           retention-days: 30
@@ -45,6 +50,8 @@ jobs:
       EXPECTED_NETLIFY_SITE_ID: e07260a5-6308-4f68-a41d-d26f267df9ab
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_COMMIT }}
 
       - uses: actions/setup-node@v4
         with:
@@ -53,9 +60,35 @@ jobs:
       - name: Install repository dependencies
         run: npm install --no-audit --no-fund
 
-      - name: Verify fixture contains no executable integrations
+      - name: Verify isolated environment and fixture boundaries
         shell: bash
         run: |
+          mkdir -p test-results/forms
+          node - <<'NODE'
+          const fs = require('fs');
+          const allowed = new Set(['NETLIFY_AUTH_TOKEN', 'NETLIFY_SITE_ID', 'EXPECTED_NETLIFY_SITE_ID', 'EXPECTED_COMMIT']);
+          const productionPattern = /(GOOGLE|APPS_SCRIPT|CALENDAR|MEET|OPERATIONS_HUB|PRODUCTION_WEBHOOK|EMAIL_RECIPIENT|GA_MEASUREMENT|META_PIXEL)/i;
+          const forbiddenNames = Object.keys(process.env).filter(name => productionPattern.test(name) && !allowed.has(name)).sort();
+          const report = {
+            expectedSiteId: process.env.EXPECTED_NETLIFY_SITE_ID,
+            exactRevision: process.env.EXPECTED_COMMIT,
+            allowedProtectedSecretNames: ['NETLIFY_FORM_TEST_AUTH_TOKEN', 'NETLIFY_FORM_TEST_SITE_ID'],
+            forbiddenEnvironmentVariableNamesPresent: forbiddenNames,
+            fixtureDirectory: 'qa/form-fixture',
+            productionNetlifyFunctionsIncluded: false,
+            productionWebhookConfigured: false,
+            GoogleSheetsConfigured: false,
+            GoogleAppsScriptConfigured: false,
+            GoogleCalendarConfigured: false,
+            GoogleMeetConfigured: false,
+            productionEmailRecipientConfigured: false,
+            operationsHubConfigured: false,
+            productionAnalyticsConfigured: false,
+          };
+          fs.writeFileSync('test-results/forms/production-isolation.json', JSON.stringify(report, null, 2));
+          if (forbiddenNames.length) throw new Error(`Forbidden production environment variable name(s) present: ${forbiddenNames.join(', ')}`);
+          NODE
+
           test -f qa/form-fixture/index.html
           test -f qa/form-fixture/confirmation.html
           test -f qa/form-fixture/_headers
@@ -71,13 +104,12 @@ jobs:
       - name: Deploy only the isolated form fixture
         shell: bash
         run: |
-          mkdir -p test-results/forms
           npx --yes netlify-cli@latest deploy \
             --dir=qa/form-fixture \
             --site="$NETLIFY_SITE_ID" \
             --auth="$NETLIFY_AUTH_TOKEN" \
             --prod \
-            --message="Milestone 11 isolated form fixture ${GITHUB_SHA}" \
+            --message="Milestone 11 isolated form fixture ${EXPECTED_COMMIT}" \
             --json > test-results/forms/deploy-raw.json
 
           node - <<'NODE'
@@ -88,7 +120,7 @@ jobs:
             url: raw.url || '',
             deployUrl: raw.deploy_url || raw.deployUrl || '',
             logs: raw.logs || '',
-            revision: process.env.GITHUB_SHA,
+            revision: process.env.EXPECTED_COMMIT,
             isolatedSiteId: process.env.EXPECTED_NETLIFY_SITE_ID,
           };
           if (!safe.deployId || !safe.url || !safe.deployUrl) throw new Error('Netlify CLI did not return complete deployment metadata.');
@@ -132,7 +164,31 @@ jobs:
             productionWebsiteContacted: false,
           });
           fs.writeFileSync('test-results/forms/deploy-safe.json', JSON.stringify(safe, null, 2));
-          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Isolated Forms deployment\n\n- URL: ${safe.url}\n- Immutable URL: ${safe.deployUrl}\n- Deploy ID: ${safe.deployId}\n- State: ${safe.state}\n- Production website contacted: no\n`);
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Isolated Forms deployment\n\n- URL: ${safe.url}\n- Immutable URL: ${safe.deployUrl}\n- Deploy ID: ${safe.deployId}\n- Revision: ${safe.revision}\n- State: ${safe.state}\n- Production website contacted: no\n`);
+          NODE
+
+      - name: Verify isolated notice, noindex, and no-store headers
+        shell: bash
+        run: |
+          deploy_url=$(node -e "console.log(require('./test-results/forms/deploy-safe.json').deployUrl)")
+          curl --silent --show-error --fail \
+            --dump-header test-results/forms/fixture-response-headers.txt \
+            --output test-results/forms/fixture-response-body.html \
+            "$deploy_url/"
+          node - <<'NODE'
+          const fs = require('fs');
+          const headers = fs.readFileSync('test-results/forms/fixture-response-headers.txt', 'utf8');
+          const body = fs.readFileSync('test-results/forms/fixture-response-body.html', 'utf8');
+          const report = {
+            testNoticePresent: /TEST ENVIRONMENT — SYNTHETIC DATA ONLY/.test(body),
+            htmlNoindexPresent: /<meta\s+name=["']robots["'][^>]+noindex/i.test(body),
+            headerNoindexPresent: /x-robots-tag:\s*noindex,\s*nofollow,\s*noarchive/i.test(headers),
+            cacheControlNoStorePresent: /cache-control:\s*no-store/i.test(headers),
+            referrerPolicyNoReferrerPresent: /referrer-policy:\s*no-referrer/i.test(headers),
+          };
+          report.passed = Object.values(report).every(value => value === true);
+          fs.writeFileSync('test-results/forms/fixture-http.json', JSON.stringify(report, null, 2));
+          if (!report.passed) throw new Error('Isolated fixture HTTP protections or test notice are incomplete.');
           NODE
 
       - name: Retrieve detected Forms schemas and isolated hooks
@@ -147,8 +203,19 @@ jobs:
             "https://api.netlify.com/api/v1/hooks?site_id=$NETLIFY_SITE_ID" \
             > test-results/forms/site-hooks.json
           node - <<'NODE'
-          const hooks = require('./test-results/forms/site-hooks.json');
+          const fs = require('fs');
+          const hooks = JSON.parse(fs.readFileSync('test-results/forms/site-hooks.json', 'utf8'));
+          const forms = JSON.parse(fs.readFileSync('test-results/forms/netlify-forms.json', 'utf8'));
           if (hooks.length) throw new Error(`Isolated site has ${hooks.length} configured hook(s); verification requires no webhook or notification integration.`);
+          const safe = JSON.parse(fs.readFileSync('test-results/forms/deploy-safe.json', 'utf8'));
+          safe.detectedFormCount = forms.length;
+          safe.configuredHookCount = hooks.length;
+          safe.productionIntegrationsAbsent = hooks.length === 0;
+          fs.writeFileSync('test-results/forms/deploy-safe.json', JSON.stringify(safe, null, 2));
+          const isolation = JSON.parse(fs.readFileSync('test-results/forms/production-isolation.json', 'utf8'));
+          isolation.configuredNetlifyHooks = hooks.length;
+          isolation.productionSystemsContacted = false;
+          fs.writeFileSync('test-results/forms/production-isolation.json', JSON.stringify(isolation, null, 2));
           NODE
 
       - name: Verify all six Netlify-detected form schemas
@@ -171,7 +238,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: milestone-11-isolated-forms-${{ github.sha }}-${{ github.run_attempt }}
+          name: milestone-11-isolated-forms-${{ env.EXPECTED_COMMIT }}-${{ github.run_attempt }}
           path: |
             test-results/forms/deploy-safe.json
             test-results/forms/deploy-status-raw.json
@@ -179,6 +246,9 @@ jobs:
             test-results/forms/site-hooks.json
             test-results/forms/schema-report.json
             test-results/forms/synthetic-submissions.json
+            test-results/forms/production-isolation.json
+            test-results/forms/fixture-http.json
+            test-results/forms/fixture-response-headers.txt
             qa/form-fixture
           if-no-files-found: warn
           retention-days: 30
