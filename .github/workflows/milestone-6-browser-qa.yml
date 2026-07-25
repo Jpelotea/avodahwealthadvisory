@@ -24,47 +24,30 @@ jobs:
   forms-secrets-preflight:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    outputs:
+      status: ${{ steps.forms-preflight.outputs.status }}
     env:
       FORM_TEST_AUTH_TOKEN: ${{ secrets.NETLIFY_FORM_TEST_AUTH_TOKEN }}
       FORM_TEST_SITE_ID: ${{ secrets.NETLIFY_FORM_TEST_SITE_ID }}
       EXPECTED_FORM_TEST_SITE_ID: e07260a5-6308-4f68-a41d-d26f267df9ab
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_COMMIT }}
       - name: Record isolated Forms secret-name status without exposing values
-        shell: bash
-        run: |
-          mkdir -p test-results/forms
-          auth_present=false
-          site_present=false
-          site_matches=false
-          status=blocked
-
-          if [ -n "${FORM_TEST_AUTH_TOKEN:-}" ]; then auth_present=true; fi
-          if [ -n "${FORM_TEST_SITE_ID:-}" ]; then
-            site_present=true
-            if [ "$FORM_TEST_SITE_ID" = "$EXPECTED_FORM_TEST_SITE_ID" ]; then site_matches=true; fi
-          fi
-          if [ "$auth_present" = true ] && [ "$site_matches" = true ]; then status=configured; fi
-
-          printf '{"status":"%s","authTokenSecretPresent":%s,"siteIdSecretPresent":%s,"siteIdMatchesIsolatedProject":%s,"expectedSiteId":"%s"}\n' \
-            "$status" "$auth_present" "$site_present" "$site_matches" "$EXPECTED_FORM_TEST_SITE_ID" \
-            > test-results/forms/secrets-status.json
-
-          if [ "$status" = configured ]; then
-            echo "Isolated Forms protected secrets are configured for the expected test site." >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "::warning::Isolated Forms deployment remains blocked: required protected secrets are missing or the site ID does not match the isolated project."
-            echo "Isolated Forms deployment remains blocked pending the two protected test secrets." >> "$GITHUB_STEP_SUMMARY"
-          fi
+        id: forms-preflight
+        run: node scripts/forms-secret-preflight.mjs
       - name: Upload isolated Forms secret preflight evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: milestone-9-forms-secrets-${{ github.event.pull_request.head.sha || github.sha }}
+          name: milestone-11-forms-secrets-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_attempt }}
           path: test-results/forms/secrets-status.json
           if-no-files-found: error
           retention-days: 30
 
   synchronization-isolation:
+    if: github.event_name != 'push' || !contains(github.event.head_commit.message, '[preflight-only]')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

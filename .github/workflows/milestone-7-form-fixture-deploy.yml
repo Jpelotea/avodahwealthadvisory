@@ -7,7 +7,32 @@ permissions:
   contents: read
 
 jobs:
+  forms-secrets-preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      status: ${{ steps.forms-preflight.outputs.status }}
+    env:
+      FORM_TEST_AUTH_TOKEN: ${{ secrets.NETLIFY_FORM_TEST_AUTH_TOKEN }}
+      FORM_TEST_SITE_ID: ${{ secrets.NETLIFY_FORM_TEST_SITE_ID }}
+      EXPECTED_FORM_TEST_SITE_ID: e07260a5-6308-4f68-a41d-d26f267df9ab
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify protected isolated test credentials
+        id: forms-preflight
+        run: node scripts/forms-secret-preflight.mjs
+      - name: Upload protected preflight evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: milestone-11-isolated-forms-preflight-${{ github.sha }}-${{ github.run_attempt }}
+          path: test-results/forms/secrets-status.json
+          if-no-files-found: error
+          retention-days: 30
+
   deploy-and-verify-isolated-forms:
+    needs: forms-secrets-preflight
+    if: needs.forms-secrets-preflight.result == 'success' && needs.forms-secrets-preflight.outputs.status == 'ready'
     runs-on: ubuntu-latest
     timeout-minutes: 40
     env:
@@ -16,23 +41,6 @@ jobs:
       EXPECTED_NETLIFY_SITE_ID: e07260a5-6308-4f68-a41d-d26f267df9ab
     steps:
       - uses: actions/checkout@v4
-
-      - name: Verify protected isolated test credentials
-        shell: bash
-        run: |
-          missing=0
-          if [ -z "${NETLIFY_AUTH_TOKEN:-}" ]; then
-            echo "::error::Missing GitHub Actions secret NETLIFY_FORM_TEST_AUTH_TOKEN"
-            missing=1
-          fi
-          if [ -z "${NETLIFY_SITE_ID:-}" ]; then
-            echo "::error::Missing GitHub Actions secret NETLIFY_FORM_TEST_SITE_ID"
-            missing=1
-          elif [ "$NETLIFY_SITE_ID" != "$EXPECTED_NETLIFY_SITE_ID" ]; then
-            echo "::error::NETLIFY_FORM_TEST_SITE_ID does not reference the approved isolated project"
-            missing=1
-          fi
-          exit "$missing"
 
       - uses: actions/setup-node@v4
         with:
@@ -65,7 +73,7 @@ jobs:
             --site="$NETLIFY_SITE_ID" \
             --auth="$NETLIFY_AUTH_TOKEN" \
             --prod \
-            --message="Milestone 9 isolated form fixture ${GITHUB_SHA}" \
+            --message="Milestone 11 isolated form fixture ${GITHUB_SHA}" \
             --json > test-results/forms/deploy-raw.json
 
           node - <<'NODE'
@@ -149,8 +157,6 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run synthetic submissions and cleanup
-        env:
-          ISOLATED_FORM_URL: ${{ env.ISOLATED_FORM_URL }}
         shell: bash
         run: |
           export ISOLATED_FORM_URL=$(node -e "console.log(require('./test-results/forms/deploy-safe.json').deployUrl)")
@@ -161,7 +167,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: milestone-9-isolated-forms-${{ github.sha }}
+          name: milestone-11-isolated-forms-${{ github.sha }}-${{ github.run_attempt }}
           path: |
             test-results/forms/deploy-safe.json
             test-results/forms/deploy-status-raw.json
