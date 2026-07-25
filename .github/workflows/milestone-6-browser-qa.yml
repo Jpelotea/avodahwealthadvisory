@@ -1,4 +1,4 @@
-name: Milestone 8 Definitive Browser QA and Performance
+name: Milestone 9 Definitive Evidence
 
 on:
   push:
@@ -12,14 +12,58 @@ permissions:
   contents: read
 
 concurrency:
-  group: milestone-8-qa-${{ github.event.pull_request.number || github.ref }}
+  group: milestone-9-qa-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 env:
   PLAYWRIGHT_BASE_URL: https://deploy-preview-8--avodahwealthadvisory.netlify.app
-  EXPECTED_RC_REVISION: m8-deploy-recovery-v1
+  EXPECTED_RC_REVISION: m9-definitive-evidence-v1
+  EXPECTED_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
 
 jobs:
+  forms-secrets-preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      FORM_TEST_AUTH_TOKEN: ${{ secrets.NETLIFY_FORM_TEST_AUTH_TOKEN }}
+      FORM_TEST_SITE_ID: ${{ secrets.NETLIFY_FORM_TEST_SITE_ID }}
+      EXPECTED_FORM_TEST_SITE_ID: e07260a5-6308-4f68-a41d-d26f267df9ab
+    steps:
+      - name: Record isolated Forms secret-name status without exposing values
+        shell: bash
+        run: |
+          mkdir -p test-results/forms
+          auth_present=false
+          site_present=false
+          site_matches=false
+          status=blocked
+
+          if [ -n "${FORM_TEST_AUTH_TOKEN:-}" ]; then auth_present=true; fi
+          if [ -n "${FORM_TEST_SITE_ID:-}" ]; then
+            site_present=true
+            if [ "$FORM_TEST_SITE_ID" = "$EXPECTED_FORM_TEST_SITE_ID" ]; then site_matches=true; fi
+          fi
+          if [ "$auth_present" = true ] && [ "$site_matches" = true ]; then status=configured; fi
+
+          printf '{"status":"%s","authTokenSecretPresent":%s,"siteIdSecretPresent":%s,"siteIdMatchesIsolatedProject":%s,"expectedSiteId":"%s"}\n' \
+            "$status" "$auth_present" "$site_present" "$site_matches" "$EXPECTED_FORM_TEST_SITE_ID" \
+            > test-results/forms/secrets-status.json
+
+          if [ "$status" = configured ]; then
+            echo "Isolated Forms protected secrets are configured for the expected test site." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::warning::Isolated Forms deployment remains blocked: required protected secrets are missing or the site ID does not match the isolated project."
+            echo "Isolated Forms deployment remains blocked pending the two protected test secrets." >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Upload isolated Forms secret preflight evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: milestone-9-forms-secrets-${{ github.event.pull_request.head.sha || github.sha }}
+          path: test-results/forms/secrets-status.json
+          if-no-files-found: error
+          retention-days: 30
+
   synchronization-isolation:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -29,17 +73,29 @@ jobs:
         with:
           node-version: 22
       - run: npm install --no-audit --no-fund
-      - name: Reproduce Netlify static build
+      - name: Reproduce Netlify deploy-preview static build
+        env:
+          CONTEXT: deploy-preview
+          COMMIT_REF: ${{ env.EXPECTED_COMMIT }}
+          DEPLOY_ID: gha-${{ github.run_id }}
+          BUILD_ID: gha-${{ github.run_id }}
+          DEPLOY_URL: https://gha-${{ github.run_id }}--avodahwealthadvisory.netlify.app
+          DEPLOY_PRIME_URL: ${{ env.PLAYWRIGHT_BASE_URL }}
+          BRANCH: agent/blueprint-foundation
+          REVIEW_ID: 8
         run: npm run build
-      - name: Run synchronization isolation and Edge import unit tests
+      - name: Run synchronization isolation, Edge, and build-evidence unit tests
         run: npm run test:unit
-      - name: Upload synchronization and build-test output
+      - name: Upload synchronization and build evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: milestone-8-sync-isolation-${{ github.sha }}
-          path: test-results/unit
-          if-no-files-found: ignore
+          name: milestone-9-sync-build-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            rc-revision.json
+            _headers
+            test-results/unit
+          if-no-files-found: warn
           retention-days: 30
 
   browser-qa:
@@ -49,7 +105,7 @@ jobs:
       matrix:
         browser: [chromium, firefox, webkit]
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 50
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -58,33 +114,17 @@ jobs:
       - run: npm install --no-audit --no-fund
       - name: Install ${{ matrix.browser }} browser
         run: npx playwright install --with-deps ${{ matrix.browser }}
-      - name: Wait for protected release marker
-        shell: bash
-        run: |
-          mkdir -p test-results/evidence
-          for i in {1..60}; do
-            headers=$(mktemp)
-            code=$(curl -sS -D "$headers" -o /dev/null -w '%{http_code}' "$PLAYWRIGHT_BASE_URL" || true)
-            robots=$(awk 'BEGIN{IGNORECASE=1} /^x-robots-tag:/ {sub(/^[^:]+:[[:space:]]*/, ""); print}' "$headers" | tr -d '\r')
-            revision=$(awk 'BEGIN{IGNORECASE=1} /^x-avodah-rc-revision:/ {sub(/^[^:]+:[[:space:]]*/, ""); print}' "$headers" | tr -d '\r')
-            deploy_context=$(awk 'BEGIN{IGNORECASE=1} /^x-avodah-deploy-context:/ {sub(/^[^:]+:[[:space:]]*/, ""); print}' "$headers" | tr -d '\r')
-            rm -f "$headers"
-            echo "attempt=$i status=$code expected=$EXPECTED_RC_REVISION observed=$revision context=$deploy_context robots=$robots"
-            if [ "$code" = "200" ] && echo "$robots" | grep -qi 'noindex' && [ "$revision" = "$EXPECTED_RC_REVISION" ] && [ "$deploy_context" = "deploy-preview" ]; then
-              printf '{"expectedReleaseMarker":"%s","observedReleaseMarker":"%s","deployContext":"%s","httpStatus":%s,"target":"%s","workflowSha":"%s"}\n' "$EXPECTED_RC_REVISION" "$revision" "$deploy_context" "$code" "$PLAYWRIGHT_BASE_URL" "$GITHUB_SHA" > "test-results/evidence/revision-${{ matrix.browser }}.json"
-              exit 0
-            fi
-            sleep 10
-          done
-          echo "Deploy Preview did not reach protected marker $EXPECTED_RC_REVISION."
-          exit 1
+      - name: Verify exact deployed revision and protected preview
+        env:
+          GATE_OUTPUT: test-results/evidence/release-gate-${{ matrix.browser }}.json
+        run: node scripts/verify-release-gate.mjs
       - name: Run ${{ matrix.browser }} browser QA
         run: npm run test:e2e -- --project=${{ matrix.browser }}
-      - name: Upload ${{ matrix.browser }} QA evidence
+      - name: Upload ${{ matrix.browser }} definitive QA evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: milestone-8-${{ matrix.browser }}-qa-${{ github.sha }}
+          name: milestone-9-${{ matrix.browser }}-qa-${{ github.event.pull_request.head.sha || github.sha }}
           path: |
             playwright-report
             test-results
@@ -94,7 +134,7 @@ jobs:
   performance:
     needs: synchronization-isolation
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -103,26 +143,10 @@ jobs:
       - run: npm install --no-audit --no-fund
       - name: Install Chromium for Lighthouse
         run: npx playwright install --with-deps chromium
-      - name: Wait for protected release marker
-        shell: bash
-        run: |
-          mkdir -p test-results/lighthouse
-          for i in {1..60}; do
-            headers=$(mktemp)
-            code=$(curl -sS -D "$headers" -o /dev/null -w '%{http_code}' "$PLAYWRIGHT_BASE_URL" || true)
-            robots=$(awk 'BEGIN{IGNORECASE=1} /^x-robots-tag:/ {sub(/^[^:]+:[[:space:]]*/, ""); print}' "$headers" | tr -d '\r')
-            revision=$(awk 'BEGIN{IGNORECASE=1} /^x-avodah-rc-revision:/ {sub(/^[^:]+:[[:space:]]*/, ""); print}' "$headers" | tr -d '\r')
-            deploy_context=$(awk 'BEGIN{IGNORECASE=1} /^x-avodah-deploy-context:/ {sub(/^[^:]+:[[:space:]]*/, ""); print}' "$headers" | tr -d '\r')
-            rm -f "$headers"
-            echo "attempt=$i status=$code expected=$EXPECTED_RC_REVISION observed=$revision context=$deploy_context robots=$robots"
-            if [ "$code" = "200" ] && echo "$robots" | grep -qi 'noindex' && [ "$revision" = "$EXPECTED_RC_REVISION" ] && [ "$deploy_context" = "deploy-preview" ]; then
-              printf '{"expectedReleaseMarker":"%s","observedReleaseMarker":"%s","deployContext":"%s","httpStatus":%s,"target":"%s","workflowSha":"%s"}\n' "$EXPECTED_RC_REVISION" "$revision" "$deploy_context" "$code" "$PLAYWRIGHT_BASE_URL" "$GITHUB_SHA" > test-results/lighthouse/revision.json
-              exit 0
-            fi
-            sleep 10
-          done
-          echo "Deploy Preview did not reach protected marker $EXPECTED_RC_REVISION."
-          exit 1
+      - name: Verify exact deployed revision and protected preview
+        env:
+          GATE_OUTPUT: test-results/lighthouse/release-gate.json
+        run: node scripts/verify-release-gate.mjs
       - name: Run Lighthouse on priority workflows
         shell: bash
         run: |
@@ -162,7 +186,9 @@ jobs:
                 cumulativeLayoutShift: a['cumulative-layout-shift']?.numericValue ?? null,
                 totalBlockingTimeMs: a['total-blocking-time']?.numericValue ?? null,
                 speedIndexMs: a['speed-index']?.numericValue ?? null,
-              }
+              },
+              consoleErrors: a['errors-in-console']?.details?.items || [],
+              failedRequests: a['network-requests']?.details?.items?.filter(item => Number(item.statusCode) >= 400) || [],
             };
           });
           fs.writeFileSync(path.join(directory, 'summary.json'), JSON.stringify(summary, null, 2));
@@ -173,7 +199,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: milestone-8-lighthouse-${{ github.sha }}
+          name: milestone-9-lighthouse-${{ github.event.pull_request.head.sha || github.sha }}
           path: test-results/lighthouse
           if-no-files-found: warn
           retention-days: 30
