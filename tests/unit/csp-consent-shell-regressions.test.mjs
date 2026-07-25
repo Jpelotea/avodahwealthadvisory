@@ -29,7 +29,7 @@ test('site shell preserves specialized headers and contains skip links in a navi
   assert.match(source, /links\.forEach\(\(link\) => navigation\?\.append\(link\)\)/);
 });
 
-test('preview toolbar CSP exception remains exact-host and exact-signature scoped', async () => {
+test('Netlify Drawer exclusions remain exact-host, exact-signature, and exact-selector scoped', async () => {
   const [releaseCandidate, security] = await Promise.all([
     readSource('tests/e2e/release-candidate.spec.mjs'),
     readSource('tests/e2e/milestone-9-security.spec.mjs'),
@@ -37,6 +37,10 @@ test('preview toolbar CSP exception remains exact-host and exact-signature scope
   for (const source of [releaseCandidate, security]) {
     assert.match(source, /previewHostname\.startsWith\('deploy-preview-8--'\)/);
     assert.match(source, /sha256-dH\+oOZOdDv\+MWU0F8bCZOoFHX0jFM4\+bwNqOKujbv90=/);
+    assert.match(source, /sha256-ikgYIuM\/1wkyZ\+w23wP7pGyeh3RzH5XDMS3MqR2mWrY=/);
     assert.doesNotMatch(source, /\(frame-src\|inline style\)/i);
   }
+  assert.match(releaseCandidate, /\[data-netlify-deploy-id\]/);
+  assert.match(releaseCandidate, /iframe\[title=\"Netlify Drawer\"\]/);
+  assert.match(releaseCandidate, /previewDrawerRemoved/);
 });
