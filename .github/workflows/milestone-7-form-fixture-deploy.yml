@@ -27,6 +27,10 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ env.EXPECTED_COMMIT }}
+      - name: Validate preflight and isolated harness contracts
+        run: |
+          node --check scripts/test-isolated-form-submissions.mjs
+          node --test tests/unit/forms-secret-preflight-contract.test.mjs
       - name: Verify protected isolated test credentials
         id: forms-preflight
         run: node scripts/forms-secret-preflight.mjs
