@@ -5,17 +5,21 @@ const expectedCommit = process.env.EXPECTED_COMMIT || '';
 const expectedMarker = process.env.EXPECTED_RC_REVISION || 'm9-definitive-evidence-v1';
 const priorityRoutes = ['/', '/consultation/', '/client-support/', '/careers/apply/', '/system-error.html'];
 const previewHostname = new URL(process.env.PLAYWRIGHT_BASE_URL || 'https://invalid.example').hostname;
-const netlifyToolbarStyleHash = 'sha256-dH+oOZOdDv+MWU0F8bCZOoFHX0jFM4+bwNqOKujbv90=';
+const netlifyDrawerStyleHashes = [
+  'sha256-dH+oOZOdDv+MWU0F8bCZOoFHX0jFM4+bwNqOKujbv90=',
+  'sha256-ikgYIuM/1wkyZ+w23wP7pGyeh3RzH5XDMS3MqR2mWrY=',
+];
 
 async function writeEvidence(name, data) {
   await fs.mkdir('test-results/evidence', { recursive: true });
   await fs.writeFile(`test-results/evidence/${name}`, `${JSON.stringify(data, null, 2)}\n`, 'utf8');
 }
 
-function isExactPreviewToolbarNoise(text) {
-  const toolbarStyleViolation = previewHostname.startsWith('deploy-preview-8--') &&
-    /Applying inline style violates/i.test(text) && text.includes(netlifyToolbarStyleHash);
-  return /app\.netlify\.com|deployID=|Source: position:fixed/i.test(text) || toolbarStyleViolation;
+function isExactPreviewDrawerNoise(text) {
+  const drawerStyleViolation = previewHostname.startsWith('deploy-preview-8--') &&
+    /Applying inline style violates/i.test(text) &&
+    netlifyDrawerStyleHashes.some(hash => text.includes(hash));
+  return /app\.netlify\.com|deployID=|Source: position:fixed/i.test(text) || drawerStyleViolation;
 }
 
 test('release endpoint, Edge health, and preview headers identify the exact revision', async ({ request }, testInfo) => {
@@ -54,11 +58,11 @@ test('release endpoint, Edge health, and preview headers identify the exact revi
 for (const route of priorityRoutes) {
   test(`${route} operates under the strict application CSP`, async ({ page }, testInfo) => {
     const cspErrors = [];
-    const previewToolbarNoise = [];
+    const previewDrawerNoise = [];
     page.on('console', message => {
       if (message.type() !== 'error' || !/content-security-policy|refused to execute|refused to load/i.test(message.text())) return;
       const text = message.text();
-      if (isExactPreviewToolbarNoise(text)) previewToolbarNoise.push(text);
+      if (isExactPreviewDrawerNoise(text)) previewDrawerNoise.push(text);
       else cspErrors.push(text);
     });
 
@@ -87,7 +91,7 @@ for (const route of priorityRoutes) {
       applicationInlineHandlers,
       staticAnalyticsLoaders,
       cspErrors,
-      previewToolbarNoise,
+      previewDrawerNoise,
     });
     expect(cspErrors).toEqual([]);
   });
