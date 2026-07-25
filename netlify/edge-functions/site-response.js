@@ -1,5 +1,3 @@
-import { parse, serialize } from "parse5";
-
 const CLEAN_ROUTES = {
   "/about/": "/about.html",
   "/services/": "/services.html",
@@ -46,32 +44,7 @@ const LEGACY_REDIRECTS = {
 
 const RELEASE_CANDIDATE_REVISION = "m8-deploy-recovery-v1";
 const DEPLOY_COMMIT_REF = "__NETLIFY_COMMIT_REF__";
-const GA_MEASUREMENT_ID = "G-HV9X54P7NT";
 const productionCanonical = (path) => `https://avodahwealthadvisory.netlify.app${path}`;
-
-const attributeValue = (node, name) => node.attrs?.find((item) => item.name === name)?.value || "";
-const scriptText = (node) => (node.childNodes || [])
-  .filter((child) => child.nodeName === "#text")
-  .map((child) => child.value || "")
-  .join("");
-
-const stripLegacyAnalytics = (html) => {
-  const document = parse(html);
-  const visit = (node) => {
-    if (!node?.childNodes) return;
-    node.childNodes = node.childNodes.filter((child) => {
-      if (child.tagName !== "script") return true;
-      const source = attributeValue(child, "src");
-      const inline = scriptText(child);
-      const legacyLoader = source.includes("googletagmanager.com/gtag/js");
-      const legacyConfig = inline.includes(GA_MEASUREMENT_ID) && inline.includes("gtag(");
-      return !legacyLoader && !legacyConfig;
-    });
-    node.childNodes.forEach(visit);
-  };
-  visit(document);
-  return serialize(document);
-};
 
 const normalizeRootDocumentUrls = (html) =>
   html.replace(/\b(href|src|action)=(['"])([^'"]+)\2/gi, (match, attribute, quote, value) => {
@@ -110,7 +83,7 @@ export default async (request, context) => {
   const contentType = response.headers.get("content-type") || "";
   if (!contentType.includes("text/html")) return response;
 
-  let html = stripLegacyAnalytics(await response.text());
+  let html = await response.text();
   const nonProduction = deployContext === "branch-deploy" || deployContext === "deploy-preview";
 
   if (sourcePath) {
