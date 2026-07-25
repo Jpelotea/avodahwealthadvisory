@@ -9,6 +9,14 @@ import { verifyHttpIsolation } from '../../scripts/verify-netlify-forms-fixture-
 
 const preflightWorkflow = new URL('../../.github/workflows/milestone-7-form-fixture-deploy.yml', import.meta.url);
 const deploymentWorkflow = new URL('../../.github/workflows/milestone-11-forms-fixture-deploy.yml', import.meta.url);
+const syntheticHarnessParts = [
+  new URL('../../scripts/test-isolated-form-submissions-v2.part-01.mjs', import.meta.url),
+  new URL('../../scripts/test-isolated-form-submissions-v2.part-02.mjs', import.meta.url),
+  new URL('../../scripts/test-isolated-form-submissions-v2.part-03.mjs', import.meta.url),
+  new URL('../../scripts/test-isolated-form-submissions-v2.part-04.mjs', import.meta.url),
+];
+const syntheticHarnessRunner = new URL('../../scripts/run-isolated-form-submissions-v2.mjs', import.meta.url);
+const syntheticHarnessEntrypoint = new URL('../../scripts/test-isolated-form-submissions.mjs', import.meta.url);
 
 test('dedicated fixture configuration and source inventory are production-isolated', async () => {
   const report=await inspectFixture();
@@ -56,4 +64,21 @@ test('runtime and HTTP gate accepts only zero-runtime strict fixture responses',
     const report=await verifyHttpIsolation({deployStatusPath:path.join(root,'deploy-status-raw.json'),deploySafePath:path.join(root,'deploy-safe.json'),headersPath:path.join(root,'fixture-response-headers.txt'),bodyPath:path.join(root,'fixture-response-body.html'),inventoryPath:path.join(root,'fixture-inventory.json'),outputPath:path.join(root,'http-isolation.json')});
     assert.equal(report.passed,true); assert.equal(report.effectiveRedirectRules,0); assert.equal(report.netlifyFunctionsCount,0); assert.equal(report.edgeFunctionsCount,0);
   } finally { await rm(dir,{recursive:true,force:true}); }
+});
+
+test('synthetic harness accepts canonical Netlify confirmation routes and isolates page state', async () => {
+  const harness=(await Promise.all(syntheticHarnessParts.map(part=>readFile(part,'utf8')))).join('');
+  const runner=await readFile(syntheticHarnessRunner,'utf8');
+  const entrypoint=await readFile(syntheticHarnessEntrypoint,'utf8');
+  assert.match(harness,/new Set\(\['\/confirmation', '\/confirmation\.html'\]\)/);
+  assert.match(harness,/function isConfirmationPath\(pathname\)/);
+  assert.match(harness,/async function withPage\(context, operation\)/);
+  assert.match(harness,/async function pollForSyntheticSubmissions/);
+  assert.match(harness,/await fetch\(`\$\{baseUrl\}\$\{route\}`/);
+  assert.match(harness,/pendingDoubleClick\.filter\(item => item\.capturedPostRequests > 0\)/);
+  assert.doesNotMatch(harness,/const confirmationPath = '\/confirmation\.html'/);
+  assert.doesNotMatch(harness,/const page = await context\.newPage\(\);\s*try\s*\{\s*for \(const formName/s);
+  assert.match(runner,/--check/);
+  assert.match(entrypoint,/run-isolated-form-submissions-v2\.mjs/);
+  assert.match(runner,/test-isolated-form-submissions-v2\.part-01\.mjs/);
 });
