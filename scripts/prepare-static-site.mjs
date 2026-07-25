@@ -4,6 +4,7 @@ import { parse, serialize } from 'parse5';
 
 const ROOT = process.cwd();
 const MEASUREMENT_ID = 'G-HV9X54P7NT';
+const EDGE_REVISION_PLACEHOLDER = '__NETLIFY_COMMIT_REF__';
 
 const attribute = (node, name) => node.attrs?.find((item) => item.name === name)?.value || '';
 const textContent = (node) => (node.childNodes || [])
@@ -54,6 +55,13 @@ await writeFile(
   `${JSON.stringify({ revision, deployContext }, null, 2)}\n`,
   'utf8',
 );
+
+const edgePath = path.join(ROOT, 'netlify', 'edge-functions', 'site-response.js');
+const edgeSource = await readFile(edgePath, 'utf8');
+if (process.env.COMMIT_REF && edgeSource.includes(EDGE_REVISION_PLACEHOLDER)) {
+  await writeFile(edgePath, edgeSource.replaceAll(EDGE_REVISION_PLACEHOLDER, revision), 'utf8');
+  console.log(`Injected Netlify COMMIT_REF into ${path.relative(ROOT, edgePath)}.`);
+}
 
 console.log(`Static-site preparation complete. Removed ${totalRemoved} legacy analytics script(s).`);
 console.log(`Wrote rc-revision.json for ${revision} (${deployContext}).`);
