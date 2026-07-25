@@ -36,7 +36,7 @@ test('preview toolbar CSP exception remains exact-host and exact-signature scope
   ]);
   for (const source of [releaseCandidate, security]) {
     assert.match(source, /previewHostname\.startsWith\('deploy-preview-8--'\)/);
-    assert.match(source, /sha256-dH\+oOZOdDv\+MWU0F8bCZOoFHX0jFM4\+bWDqOKujbv90=/);
+    assert.match(source, /sha256-dH\+oOZOdDv\+MWU0F8bCZOoFHX0jFM4\+bwNqOKujbv90=/);
     assert.doesNotMatch(source, /\(frame-src\|inline style\)/i);
   }
 });
