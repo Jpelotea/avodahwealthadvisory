@@ -69,6 +69,8 @@
 .intake-shell,
 .workflow-card,
 .intake-card {
+  min-width: 0;
+  max-width: 100%;
   font-family: "Open Sans", Arial, sans-serif;
 }
 
@@ -83,6 +85,42 @@
 .workflow-page .button,
 .intake-shell .button {
   font-family: Montserrat, Arial, sans-serif;
+}
+
+.workflow-page h1,
+.intake-shell h1,
+.cookie-banner,
+.cookie-banner p,
+.cookie-banner strong,
+.cookie-actions,
+.cookie-actions .button {
+  overflow-wrap: anywhere;
+}
+
+.cookie-banner {
+  max-width: calc(100vw - 32px);
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.cookie-banner > * {
+  min-width: 0;
+}
+
+.cookie-banner > :first-child {
+  flex: 1 1 22rem;
+}
+
+.cookie-banner .cookie-actions {
+  flex: 1 1 18rem;
+  min-width: 0;
+}
+
+.cookie-banner .cookie-actions .button {
+  flex: 1 1 10rem;
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
 }
 
 .field-hint,
@@ -134,6 +172,22 @@
 
   .site-header .nav .button-primary {
     white-space: normal;
+  }
+
+  .cookie-banner {
+    align-items: stretch;
+  }
+}
+
+@media (max-width: 720px) {
+  .cookie-banner {
+    flex-direction: column;
+  }
+
+  .cookie-banner > :first-child,
+  .cookie-banner .cookie-actions {
+    flex-basis: auto;
+    width: 100%;
   }
 }
 
