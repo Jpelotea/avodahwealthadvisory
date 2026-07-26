@@ -8,9 +8,9 @@ on:
         required: true
         type: string
       form_name:
-        description: Isolated form name to retest
+        description: Isolated synthetic verification mode
         required: true
-        default: consultation-recovery
+        default: milestone-12e-options
         type: string
       deploy_id:
         description: Accepted clean isolated Deploy ID
@@ -28,6 +28,7 @@ permissions:
 env:
   EXPECTED_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
   EXPECTED_FORM_TEST_SITE_ID: e07260a5-6308-4f68-a41d-d26f267df9ab
+  EXPECTED_RETEST_DEPLOY_ID: 6a6655d7af3341b646d4d12f
 
 jobs:
   explicit-synthetic-retest-trigger:
@@ -56,8 +57,8 @@ jobs:
           deploy_id=''
           if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ] \
             && [ "${CONFIRM_SYNTHETIC_RETEST:-}" = "RUN_ISOLATED_FORMS_SYNTHETIC" ] \
-            && [ "${INPUT_FORM_NAME:-}" = "consultation-recovery" ] \
-            && [ "${INPUT_DEPLOY_ID:-}" = "6a65301e791e1b869fe2dc6c" ]; then
+            && [ "${INPUT_FORM_NAME:-}" = "milestone-12e-options" ] \
+            && [ "${INPUT_DEPLOY_ID:-}" = "$EXPECTED_RETEST_DEPLOY_ID" ]; then
             eligible=true
             form_name="$INPUT_FORM_NAME"
             deploy_id="$INPUT_DEPLOY_ID"
@@ -68,10 +69,10 @@ jobs:
             if [[ "$PR_TITLE" == *"[run-forms-synthetic]"* ]] \
               && [[ "$message" == *"[run-forms-synthetic]"* ]] \
               && [ "$changed" = ".github/forms-synthetic-retest-request" ] \
-              && [ "$request" = "RUN_ISOLATED_FORMS_SYNTHETIC consultation-recovery 6a65301e791e1b869fe2dc6c" ]; then
+              && [ "$request" = "RUN_ISOLATED_FORMS_SYNTHETIC milestone-12e-options $EXPECTED_RETEST_DEPLOY_ID" ]; then
               eligible=true
-              form_name='consultation-recovery'
-              deploy_id='6a65301e791e1b869fe2dc6c'
+              form_name='milestone-12e-options'
+              deploy_id="$EXPECTED_RETEST_DEPLOY_ID"
             fi
           fi
           echo "eligible=$eligible" >> "$GITHUB_OUTPUT"
@@ -82,7 +83,7 @@ jobs:
     needs: explicit-synthetic-retest-trigger
     if: needs.explicit-synthetic-retest-trigger.outputs.eligible == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     env:
       FORM_TEST_AUTH_TOKEN: ${{ secrets.NETLIFY_FORM_TEST_AUTH_TOKEN }}
       FORM_TEST_SITE_ID: ${{ secrets.NETLIFY_FORM_TEST_SITE_ID }}
@@ -161,21 +162,21 @@ jobs:
             FORM_SCHEMA_REPORT=test-results/forms/schema-report.json \
             node scripts/verify-isolated-form-schemas.mjs
 
-      - name: Retest consultation-recovery only and clean synthetic records
+      - name: Retest Milestone 12E affected options and clean synthetic records
         shell: bash
         run: |
-          npx playwright install --with-deps chromium
           export ISOLATED_FORM_URL=$(node -e "console.log(require('./test-results/forms/deploy-safe.json').deployUrl)")
-          export SYNTHETIC_FORM_NAME="$RETEST_FORM_NAME"
-          export SYNTHETIC_FORM_COOLDOWN_MS=0
-          export SYNTHETIC_FORM_REPORT=test-results/forms/synthetic-submissions.json
-          node scripts/test-isolated-form-submissions.mjs
+          export M12D_FORM_OPTIONS_REPORT=test-results/forms/milestone-12e-form-options.json
+          export M12D_FORM_COOLDOWN_MS=8000
+          export M12D_FORM_RATE_LIMIT_BACKOFF_MS=30000
+          export M12D_FORM_MAX_ATTEMPTS=5
+          node scripts/test-milestone-12d-form-options.mjs
 
       - name: Upload synthetic-only retest evidence
         if: ${{ success() || failure() }}
         uses: actions/upload-artifact@v4
         with:
-          name: milestone-11a-synthetic-retest-${{ env.EXPECTED_COMMIT }}-${{ github.run_attempt }}
+          name: milestone-12e-synthetic-retest-${{ env.EXPECTED_COMMIT }}-${{ github.run_attempt }}
           path: test-results/forms
           if-no-files-found: error
           retention-days: 30
