@@ -1,6 +1,7 @@
 import { readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { parse, serialize } from 'parse5';
+import { applyMilestone12D } from './apply-milestone-12d-remediation.mjs';
 
 const ROOT = process.cwd();
 const MEASUREMENT_ID = 'G-HV9X54P7NT';
@@ -30,6 +31,8 @@ const removeLegacyAnalytics = (node) => {
   for (const child of node.childNodes) removed += removeLegacyAnalytics(child);
   return removed;
 };
+
+await applyMilestone12D({ root: ROOT });
 
 const files = (await readdir(ROOT, { withFileTypes: true }))
   .filter((entry) => entry.isFile() && entry.name.endsWith('.html'))
