@@ -11,7 +11,22 @@ const parts = [
 ];
 const output = 'test-results/forms/test-isolated-form-submissions-v2.generated.mjs';
 await mkdir(path.dirname(output), { recursive: true });
-const source = (await Promise.all(parts.map(part => readFile(part, 'utf8')))).join('');
+let source = (await Promise.all(parts.map(part => readFile(part, 'utf8')))).join('');
+source = source.replace(
+  /  'recruitment-application': \{[\s\S]*?\n  \},\n  'general-inquiry':/,
+  `  'recruitment-application': {
+    values: marker => ({
+      full_name: \`${'${marker}'} — NOT A REAL APPLICANT\`,
+      email: syntheticEmail(marker),
+      mobile_number: '09170000000',
+      location: 'TEST LOCATION',
+      employment_status: 'Employed',
+      educational_background: 'College Graduate',
+      career_path: 'Financial advisory path',
+    }),
+  },
+  'general-inquiry':`,
+);
 await writeFile(output, source, 'utf8');
 
 const exitCode = await new Promise((resolve, reject) => {
