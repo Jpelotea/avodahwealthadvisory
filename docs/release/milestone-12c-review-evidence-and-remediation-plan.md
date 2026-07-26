@@ -5,6 +5,18 @@
 **Implementation status:** Not authorized  
 **Pull Request:** [#8](https://github.com/Jpelotea/avodahwealthadvisory/pull/8) — open, draft, and unmerged
 
+## Current human-review status
+
+| Result | Count |
+|---|---:|
+| PASS | 0 |
+| FAIL | 0 |
+| PARTIAL | 6 |
+| NOT TESTED | 53 |
+| NOT APPLICABLE | 0 |
+
+The six PARTIAL areas are the Homepage Chromium row, Consultation/Client Needs Check Chromium row, Recruitment Application Chromium row, General Inquiry Chromium row, Services Chromium row at 200%, and hover/active interaction-state contrast row. No full required check is recorded as PASS.
+
 ## Validated reviewer identity and environment
 
 | Field | Recorded value |
