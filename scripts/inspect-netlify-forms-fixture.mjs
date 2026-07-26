@@ -13,7 +13,7 @@ export const EXPECTED_FORMS = [
 ];
 
 const STYLE_HASH = 'sha256-UBEM9fc6mr/QFtxsjMEiHUkqNJwq2BWrDJ2hXnKxpY4=';
-const SCRIPT_HASH = 'sha256-aAd2Tn6ICOO7lGhHJHaPanNU21uWI478tE+9d9Hltjk=';
+const SCRIPT_HASH = 'sha256-uYPyDyza6RHoxujItx0Xts8lWcO3Ye7XQ+wC5NbblWE=';
 const STRICT_CSP = `default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; connect-src 'self'; img-src 'self' data:; style-src 'self' '${STYLE_HASH}'; script-src 'self' '${SCRIPT_HASH}'`;
 
 function hashInline(html, tag) {
