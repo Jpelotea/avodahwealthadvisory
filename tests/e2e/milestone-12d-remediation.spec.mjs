@@ -66,8 +66,11 @@ for (const [name, route] of routes) {
           buttonCount: card.querySelectorAll('a,button').length,
         })),
       }));
-      evidence.zoom[String(zoom)] = metrics;
-      await page.screenshot({ path: path.join(resultsDir, `${phase.toLowerCase()}-${browserName}-${name}-${zoom}x.png`), fullPage: true });
+      evidence.zoom[String(zoom)] = { ...metrics, screenshotMode: 'bounded viewport' };
+      await page.screenshot({
+        path: path.join(resultsDir, `${phase.toLowerCase()}-${browserName}-${name}-${zoom}x.png`),
+        fullPage: false,
+      });
       if (phase === 'POST') {
         expect(metrics.horizontalOverflow, `${name} at ${zoom * 100}%`).toBe(false);
         expect(metrics.serviceCards.some((card) => card.clipped), `${name} service clipping at ${zoom * 100}%`).toBe(false);
