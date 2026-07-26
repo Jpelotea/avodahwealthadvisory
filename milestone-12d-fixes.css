@@ -7,29 +7,33 @@
   --m12d-focus-ring: #ffcf4a;
 }
 
-.site-header .nav .button-primary,
-.site-header .nav .button-primary:visited {
-  background: var(--m12d-header-cta-bg);
-  color: var(--m12d-header-cta-text);
-  border-color: var(--m12d-header-cta-bg);
+html body .site-header .nav a.button.button-primary,
+html body .site-header .nav a.button.button-primary:visited {
+  background: var(--m12d-header-cta-bg) !important;
+  color: var(--m12d-header-cta-text) !important;
+  border-color: var(--m12d-header-cta-bg) !important;
 }
 
-.site-header .nav .button-primary:hover {
-  background: var(--m12d-header-cta-hover-bg);
-  color: var(--m12d-header-cta-text);
-  border-color: var(--m12d-header-cta-hover-bg);
+html body .site-header .nav a.button.button-primary:hover {
+  background: var(--m12d-header-cta-hover-bg) !important;
+  color: var(--m12d-header-cta-text) !important;
+  border-color: var(--m12d-header-cta-hover-bg) !important;
 }
 
-.site-header .nav .button-primary:focus-visible {
-  background: var(--m12d-header-cta-bg);
-  color: var(--m12d-header-cta-text);
-  outline: 3px solid var(--m12d-focus-ring);
+html body .site-header .nav a.button.button-primary:focus-visible {
+  background: var(--m12d-header-cta-bg) !important;
+  color: var(--m12d-header-cta-text) !important;
+  outline: 3px solid var(--m12d-focus-ring) !important;
   outline-offset: 3px;
 }
 
-.site-header .nav .button-primary:active {
-  background: #052f24;
-  color: var(--m12d-header-cta-text);
+html body .site-header .nav a.button.button-primary:active {
+  background: #052f24 !important;
+  color: var(--m12d-header-cta-text) !important;
+}
+
+.services-next-step-card .section-kicker {
+  color: #ff6b72;
 }
 
 .avodah-footer .footer-container,
