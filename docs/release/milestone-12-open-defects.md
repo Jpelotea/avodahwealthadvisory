@@ -1,119 +1,56 @@
 # Milestone 12 Accessibility Defects and Review Gaps
 
-**Prepared:** July 26, 2026  
-**Current release decision:** CONDITIONAL GO  
+**Current release decision:** **CONDITIONAL GO**  
+**Latest evidence:** `M12C-JC-2026-07-26`  
 **Pull Request:** [#8](https://github.com/Jpelotea/avodahwealthadvisory/pull/8) — open, draft, and unmerged
 
-## Current defect status
+## Authoritative provisional register
 
-No human accessibility defect has been confirmed because no required human accessibility check has yet been completed by an assigned reviewer.
+The complete Milestone 12C defect, change, evidence-gap, remediation-scope, exclusion, and release-impact register is maintained in:
 
-This statement is not an accessibility pass. The 59 required checks in `milestone-12-human-accessibility-review.md` remain **NOT TESTED**. Unperformed checks are review blockers for final release authorization, but they must not be mislabeled as software defects until actual reviewer evidence identifies a problem.
+- [`milestone-12c-review-evidence-and-remediation-plan.md`](./milestone-12c-review-evidence-and-remediation-plan.md)
 
-## Confirmed defect register
+The associated owner choices are maintained in:
 
-| Defect ID | Route | Component | User impact | Severity | Reproduction steps | Proposed correction | Owner | Status |
-|---|---|---|---|---|---|---|---|---|
-| — | — | — | No confirmed human-review defect recorded | — | — | — | — | None recorded |
+- [`milestone-12c-owner-decision-form.md`](./milestone-12c-owner-decision-form.md)
 
-## Open human-review gaps
+## Current finding summary
 
-| Gap ID | Required review | Current status | Owner action |
-|---|---|---|---|
-| GAP-01 | Chromium 100%, 200%, and 400% zoom and reflow | NOT TESTED | Assign human desktop reviewer and attach route-by-route evidence. |
-| GAP-02 | Independent Firefox zoom and reflow review | NOT TESTED | Assign Firefox reviewer and record browser-specific differences. |
-| GAP-03 | NVDA screen-reader review | NOT TESTED | Assign experienced Windows screen-reader reviewer. |
-| GAP-04 | VoiceOver with Safari, when suitable reviewer and device are available | NOT TESTED | Assign Apple reviewer or retain NOT TESTED with availability explanation. |
-| GAP-05 | Keyboard-only consultation workflow | NOT TESTED | Complete the core workflow without mouse or touch input. |
-| GAP-06 | Mobile-menu keyboard interaction | NOT TESTED | Test open, close, Escape, focus containment, state announcement, and return focus. |
-| GAP-07 | Public-form error usability | NOT TESTED | Intentionally submit invalid information on each public workflow. |
-| GAP-08 | Visible-focus review | NOT TESTED | Review all interactive component groups in default and responsive layouts. |
-| GAP-09 | Narrow-layout and 400% text reflow edge cases | NOT TESTED | Record overlap, clipping, fixed-height, overflow, and horizontal-scroll results. |
-| GAP-10 | Human contrast edge-case review | NOT TESTED | Review image/gradient text, states, placeholders, errors, consent, footer, and navigation. |
-| GAP-11 | Mobile touch-target review | NOT TESTED | Use a physical mobile or tablet where possible and record difficult adjacent targets. |
+| Category | IDs | Current status |
+|---|---|---|
+| Accessibility corrections | A11Y-001 through A11Y-004 | Provisional Moderate/Low–Moderate findings; evidence or measurement remains pending |
+| Form requirement | FORM-001 | Additional Notes field identified; optionality approval pending |
+| Design consistency | UX-001 and UX-002 | Low; scope approval pending |
+| Confirmation UX | UX-003 | Low optional enhancement; action selection pending |
+| Content corrections | CONTENT-001 and CONTENT-002 | Messenger/reference copy approval pending |
+| Recruitment decisions/corrections | RECRUIT-001 and RECRUIT-002 | Owner, privacy, retention, and copy decisions pending |
+| Future feature | RECRUIT-003 | Out of scope pending separate secure milestone |
 
-## Defect intake template
+No Critical or High defect is confirmed. No required matrix check is marked PASS from the submitted evidence. Six matrix areas are PARTIAL and 53 remain NOT TESTED.
 
-For each human result marked **FAIL** or **PARTIAL**, append a defect record using:
+## Evidence gaps
 
-| Field | Required content |
-|---|---|
-| Defect ID | Stable `M12-A11Y-###` identifier |
-| Route | Exact preview route |
-| Component | Specific component and state |
-| User impact | Concrete accessibility impact |
-| Severity | Critical, High, Moderate, Low, or Advisory |
-| Reproduction steps | Exact human steps, zoom, browser/AT, and viewport |
-| Proposed correction | Smallest safe correction or acceptance decision |
-| Owner | Assigned correction or decision owner |
-| Status | Open, In Progress, Fixed Pending Retest, Accepted, Deferred, or Closed |
-| Evidence | Screenshot, recording, notes, or issue link |
+- Hover-state color values and screenshot.
+- Footer overlap screenshot, viewport, shared-route and zoom/mobile reproduction.
+- Homepage CTA typography measurements.
+- Services 200% affected-card details, viewport, and screenshot.
+- Exact design reference for typography/footer consistency.
+- Approved Messenger and reference-number copy.
+- Approved educational options, résumé process, and recruitment optionality.
 
-## Severity and release rules
+## Remediation restriction
 
-### Critical
+No public-source correction is authorized. Complete the owner-decision form and provide the required evidence before implementation.
 
-Use when the issue creates a complete core-workflow failure or a serious legal/privacy misunderstanding, including:
+## Release effect
 
-- keyboard trap;
-- complete screen-reader workflow block;
-- required consent cannot be understood or selected;
-- essential content is unavailable;
-- confirmation or validation creates a materially false or harmful outcome.
+- A confirmed Critical or High finding changes the decision to **NO-GO**.
+- Moderate and Low findings require explicit correction, acceptance, or deferral.
+- Any approved public-source correction must be separately committed, deployed only to a new non-production preview, and followed by affected human and automated regression checks.
 
-**Release effect:** immediate **NO-GO**.
+## Current source and test status
 
-### High
-
-Use when the issue blocks a core task for a substantial user group, including:
-
-- core workflow cannot be completed by keyboard;
-- required field cannot be identified by a screen reader;
-- validation is unusable;
-- required content is hidden at 200% or 400% zoom;
-- critical navigation cannot be operated.
-
-**Release effect:** immediate **NO-GO**.
-
-### Moderate
-
-Use when a task remains possible but is materially difficult or confusing. Requires explicit correction, acceptance, or deferral before final release readiness.
-
-### Low
-
-Use for limited usability degradation that does not block a workflow. Requires an explicit correction, acceptance, or deferral decision.
-
-### Advisory
-
-Use for a documented improvement opportunity without a confirmed access barrier.
-
-## Correction workflow
-
-When a Critical or High defect is confirmed:
-
-1. change the release decision to **NO-GO**;
-2. preserve the human evidence and create the defect record;
-3. apply only the smallest safe public-source correction after documentation;
-4. commit the correction separately from Milestone 12 documentation;
-5. create a new deploy preview without deploying production;
-6. verify the exact revision and immutable preview;
-7. rerun the affected human checks;
-8. rerun only the automated browser, accessibility, consent, CSP, Forms, or other gates affected by the changed source;
-9. keep Pull Request #8 draft and unmerged.
-
-Moderate and Low issues require an explicit acceptance, correction, or deferral decision. No new server-side submission architecture or Operations Hub change is authorized by this process.
-
-## Public-source corrections
-
-**Current status:** None.
-
-Milestone 12 preparation changed documentation only. No public website HTML, CSS, client JavaScript, route, form behavior, consent behavior, Function, Edge Function, scheduling setting, production Netlify configuration, or Operations Hub source was changed.
-
-## Regression testing
-
-**Current requirement:** No automated regression rerun is required for the documentation-only change.
-
-The accepted Milestone 10 and Milestone 11A evidence remains valid. New automated testing becomes necessary only if an approved correction changes source covered by those gates.
+No public HTML, CSS, JavaScript, route, form schema, required field, confirmation action, scheduling value, Meta Pixel setting, production configuration, or Operations Hub source was changed. No regression test or new preview was created for evidence-intake documentation.
 
 ## Operations Hub hold
 
