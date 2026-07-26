@@ -1,0 +1,154 @@
+name: Milestone 12E Recruitment Required Fields
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_required_fields:
+        description: Type RUN_M12E_REQUIRED_FIELDS
+        required: true
+        type: string
+      deploy_id:
+        description: Accepted clean isolated Deploy ID
+        required: true
+        type: string
+  pull_request:
+    branches: [main]
+    types: [synchronize]
+    paths:
+      - .github/forms-required-fields-request
+
+permissions:
+  contents: read
+
+env:
+  EXPECTED_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+  EXPECTED_FORM_TEST_SITE_ID: e07260a5-6308-4f68-a41d-d26f267df9ab
+  EXPECTED_DEPLOY_ID: 6a6655d7af3341b646d4d12f
+
+jobs:
+  explicit-required-fields-trigger:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      eligible: ${{ steps.gate.outputs.eligible }}
+      deploy_id: ${{ steps.gate.outputs.deploy_id }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_COMMIT }}
+          fetch-depth: 2
+      - name: Verify exact required-fields request
+        id: gate
+        shell: bash
+        env:
+          CONFIRM_REQUIRED_FIELDS: ${{ inputs.confirm_required_fields }}
+          INPUT_DEPLOY_ID: ${{ inputs.deploy_id }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          eligible=false
+          deploy_id=''
+          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ] \
+            && [ "${CONFIRM_REQUIRED_FIELDS:-}" = "RUN_M12E_REQUIRED_FIELDS" ] \
+            && [ "${INPUT_DEPLOY_ID:-}" = "$EXPECTED_DEPLOY_ID" ]; then
+            eligible=true
+            deploy_id="$INPUT_DEPLOY_ID"
+          elif [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
+            message=$(git show -s --format=%B "$EXPECTED_COMMIT")
+            changed=$(git diff-tree --no-commit-id --name-only -r "$EXPECTED_COMMIT")
+            request=$(cat .github/forms-required-fields-request 2>/dev/null || true)
+            if [[ "$PR_TITLE" == *"[run-forms-required]"* ]] \
+              && [[ "$message" == *"[run-forms-required]"* ]] \
+              && [ "$changed" = ".github/forms-required-fields-request" ] \
+              && [ "$request" = "RUN_M12E_REQUIRED_FIELDS $EXPECTED_DEPLOY_ID" ]; then
+              eligible=true
+              deploy_id="$EXPECTED_DEPLOY_ID"
+            fi
+          fi
+          echo "eligible=$eligible" >> "$GITHUB_OUTPUT"
+          echo "deploy_id=$deploy_id" >> "$GITHUB_OUTPUT"
+
+  verify-recruitment-required-fields:
+    needs: explicit-required-fields-trigger
+    if: needs.explicit-required-fields-trigger.outputs.eligible == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      FORM_TEST_AUTH_TOKEN: ${{ secrets.NETLIFY_FORM_TEST_AUTH_TOKEN }}
+      FORM_TEST_SITE_ID: ${{ secrets.NETLIFY_FORM_TEST_SITE_ID }}
+      NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_FORM_TEST_AUTH_TOKEN }}
+      NETLIFY_SITE_ID: ${{ secrets.NETLIFY_FORM_TEST_SITE_ID }}
+      RETEST_DEPLOY_ID: ${{ needs.explicit-required-fields-trigger.outputs.deploy_id }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_COMMIT }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install repository dependencies
+        run: npm install --no-audit --no-fund
+      - name: Protected preflight and exact project access
+        shell: bash
+        run: |
+          node scripts/forms-secret-preflight.mjs
+          node scripts/forms-netlify-access-check.mjs
+          node - <<'NODE'
+          const fs = require('fs');
+          const secret = JSON.parse(fs.readFileSync('test-results/forms/secrets-status.json', 'utf8'));
+          const access = JSON.parse(fs.readFileSync('test-results/forms/access-status.json', 'utf8'));
+          if (secret.status !== 'ready') throw new Error('Protected preflight is not ready.');
+          if (access.status !== 'ready' || access.netlifyAuthenticationSucceeded !== true || access.isolatedProjectAccessible !== true) {
+            throw new Error('Exact isolated project access failed.');
+          }
+          NODE
+      - name: Revalidate frozen deployment, isolation, schemas, and hooks
+        shell: bash
+        run: |
+          mkdir -p test-results/forms
+          node scripts/inspect-netlify-forms-fixture.mjs
+          curl --silent --show-error --fail -H "Authorization: Bearer $NETLIFY_AUTH_TOKEN" \
+            "https://api.netlify.com/api/v1/deploys/$RETEST_DEPLOY_ID" > test-results/forms/deploy-status-raw.json
+          node - <<'NODE'
+          const fs = require('fs');
+          const status = JSON.parse(fs.readFileSync('test-results/forms/deploy-status-raw.json', 'utf8'));
+          const safe = {
+            deployId: status.id || '',
+            url: status.ssl_url || status.url || '',
+            deployUrl: status.deploy_ssl_url || status.deploy_url || '',
+            isolatedSiteId: process.env.EXPECTED_FORM_TEST_SITE_ID,
+          };
+          if (safe.deployId !== process.env.RETEST_DEPLOY_ID) throw new Error('Unexpected Deploy ID.');
+          if (status.site_id !== process.env.EXPECTED_FORM_TEST_SITE_ID) throw new Error('Unexpected Site ID.');
+          if (!['ready','current'].includes(status.state)) throw new Error('Frozen deployment is not ready.');
+          if ((status.available_functions || []).length !== 0 || status.edge_functions_present === true) throw new Error('Runtime contamination detected.');
+          if (!safe.deployUrl) throw new Error('Immutable deployment URL missing.');
+          fs.writeFileSync('test-results/forms/deploy-safe.json', JSON.stringify(safe, null, 2));
+          NODE
+          deploy_url=$(node -e "console.log(require('./test-results/forms/deploy-safe.json').deployUrl)")
+          curl --silent --show-error --fail --dump-header test-results/forms/fixture-response-headers.txt \
+            --output test-results/forms/fixture-response-body.html "$deploy_url/"
+          node scripts/verify-netlify-forms-fixture-http.mjs
+          curl --silent --show-error --fail -H "Authorization: Bearer $NETLIFY_AUTH_TOKEN" \
+            "https://api.netlify.com/api/v1/sites/$NETLIFY_SITE_ID/forms" > test-results/forms/netlify-forms.json
+          curl --silent --show-error --fail -H "Authorization: Bearer $NETLIFY_AUTH_TOKEN" \
+            "https://api.netlify.com/api/v1/hooks?site_id=$NETLIFY_SITE_ID" > test-results/forms/site-hooks.json
+          node -e "const hooks=require('./test-results/forms/site-hooks.json'); if(hooks.length) throw new Error('Unexpected hooks on isolated project.')"
+          FORM_FIXTURE_HTML=qa/form-fixture/index.html \
+            NETLIFY_FORMS_JSON=test-results/forms/netlify-forms.json \
+            FORM_SCHEMA_REPORT=test-results/forms/schema-report.json \
+            node scripts/verify-isolated-form-schemas.mjs
+      - name: Verify every Recruitment required field with zero POST requests
+        shell: bash
+        run: |
+          npx playwright install --with-deps chromium
+          export ISOLATED_FORM_URL=$(node -e "console.log(require('./test-results/forms/deploy-safe.json').deployUrl)")
+          export M12E_REQUIRED_FIELDS_REPORT=test-results/forms/milestone-12e-required-fields.json
+          node scripts/test-milestone-12e-required-fields.mjs
+      - name: Upload required-field evidence
+        if: ${{ success() || failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: milestone-12e-required-fields-${{ env.EXPECTED_COMMIT }}-${{ github.run_attempt }}
+          path: test-results/forms
+          if-no-files-found: error
+          retention-days: 30
