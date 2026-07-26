@@ -1,0 +1,53 @@
+name: Milestone 12D Unit Diagnostic
+
+on:
+  pull_request:
+    branches: [main]
+    types: [synchronize]
+    paths:
+      - .github/milestone-12d-unit-debug-request
+
+permissions:
+  contents: read
+
+jobs:
+  unit-diagnostic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - name: Reproduce deploy-preview build
+        env:
+          CONTEXT: deploy-preview
+          COMMIT_REF: ${{ github.event.pull_request.head.sha }}
+          DEPLOY_ID: diagnostic-${{ github.run_id }}
+          BUILD_ID: diagnostic-${{ github.run_id }}
+          DEPLOY_URL: https://diagnostic.invalid
+          DEPLOY_PRIME_URL: https://deploy-preview-8--avodahwealthadvisory.netlify.app
+          BRANCH: agent/blueprint-foundation
+          REVIEW_ID: 8
+        run: npm run build
+      - name: Capture complete unit output
+        shell: bash
+        run: |
+          mkdir -p test-results/unit
+          set +e
+          npm run test:unit 2>&1 | tee test-results/unit/milestone-12d-unit-output.log
+          status=${PIPESTATUS[0]}
+          set -e
+          echo "$status" > test-results/unit/milestone-12d-unit-exit-code.txt
+          exit "$status"
+      - name: Upload unit diagnostic
+        if: ${{ success() || failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: milestone-12d-unit-diagnostic-${{ github.event.pull_request.head.sha }}
+          path: test-results/unit
+          if-no-files-found: error
+          retention-days: 14
