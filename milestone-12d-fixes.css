@@ -1,0 +1,148 @@
+/* Milestone 12D — bounded accessibility, reflow, and design consistency corrections */
+
+:root {
+  --m12d-header-cta-bg: #0b5a42;
+  --m12d-header-cta-hover-bg: #073e2f;
+  --m12d-header-cta-text: #ffffff;
+  --m12d-focus-ring: #ffcf4a;
+}
+
+.site-header .nav .button-primary,
+.site-header .nav .button-primary:visited {
+  background: var(--m12d-header-cta-bg);
+  color: var(--m12d-header-cta-text);
+  border-color: var(--m12d-header-cta-bg);
+}
+
+.site-header .nav .button-primary:hover {
+  background: var(--m12d-header-cta-hover-bg);
+  color: var(--m12d-header-cta-text);
+  border-color: var(--m12d-header-cta-hover-bg);
+}
+
+.site-header .nav .button-primary:focus-visible {
+  background: var(--m12d-header-cta-bg);
+  color: var(--m12d-header-cta-text);
+  outline: 3px solid var(--m12d-focus-ring);
+  outline-offset: 3px;
+}
+
+.site-header .nav .button-primary:active {
+  background: #052f24;
+  color: var(--m12d-header-cta-text);
+}
+
+.avodah-footer .footer-container,
+.avodah-footer .footer-grid-launch,
+.avodah-footer .footer-main-row,
+.avodah-footer .footer-contact-inline,
+.avodah-footer .footer-meta-item,
+.avodah-footer section {
+  min-width: 0;
+}
+
+.avodah-footer .footer-grid-launch,
+.avodah-footer .footer-main-row,
+.avodah-footer .footer-contact-inline {
+  flex-wrap: wrap;
+}
+
+.avodah-footer a[href^="mailto:"],
+.avodah-footer .footer-meta-item a,
+.avodah-footer p,
+.avodah-footer section {
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.hero-actions .button-primary {
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.35;
+  white-space: normal;
+  text-wrap: balance;
+  padding-inline: clamp(1rem, 2.5vw, 1.5rem);
+  max-width: min(100%, 25rem);
+}
+
+.workflow-page,
+.intake-shell,
+.workflow-card,
+.intake-card {
+  font-family: "Open Sans", Arial, sans-serif;
+}
+
+.workflow-page h1,
+.workflow-page h2,
+.workflow-page h3,
+.workflow-page .section-kicker,
+.intake-shell h1,
+.intake-shell h2,
+.intake-shell h3,
+.intake-shell .eyebrow,
+.workflow-page .button,
+.intake-shell .button {
+  font-family: Montserrat, Arial, sans-serif;
+}
+
+.field-hint,
+.reference-guidance {
+  display: block;
+  margin-top: 0.4rem;
+  color: #475569;
+  font-size: 0.925rem;
+  line-height: 1.5;
+}
+
+.success-panel .reference,
+.reference-guidance {
+  overflow-wrap: anywhere;
+}
+
+.service-category-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+  gap: clamp(1rem, 2vw, 1.5rem);
+  align-items: stretch;
+}
+
+.service-category-card,
+.service-subcategory-groups,
+.service-subgroup,
+.service-link-list,
+.service-link-list li,
+.service-link-list a {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.service-category-card {
+  height: auto;
+  overflow: visible;
+}
+
+.service-link-list a,
+.service-category-card h2,
+.service-category-card h3 {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 900px) {
+  .service-category-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .site-header .nav .button-primary {
+    white-space: normal;
+  }
+}
+
+@media (max-width: 520px) {
+  .avodah-footer .footer-grid-launch {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-actions .button-primary {
+    width: 100%;
+  }
+}
