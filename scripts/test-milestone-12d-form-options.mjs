@@ -5,8 +5,10 @@ const baseUrl = String(process.env.ISOLATED_FORM_URL || '').replace(/\/$/, '');
 const siteId = String(process.env.NETLIFY_SITE_ID || '');
 const authToken = String(process.env.NETLIFY_AUTH_TOKEN || '');
 const outputPath = process.env.M12D_FORM_OPTIONS_REPORT || 'test-results/forms/milestone-12d-form-options.json';
-const runTag = `M12D-TEST-${process.env.GITHUB_RUN_ID || Date.now()}`;
-const cooldownMs = Number(process.env.M12D_FORM_COOLDOWN_MS || 5_000);
+const runTag = `M12E-TEST-${process.env.GITHUB_RUN_ID || Date.now()}`;
+const cooldownMs = Number(process.env.M12D_FORM_COOLDOWN_MS || 8_000);
+const rateLimitBackoffMs = Number(process.env.M12D_FORM_RATE_LIMIT_BACKOFF_MS || 30_000);
+const maxSubmitAttempts = Number(process.env.M12D_FORM_MAX_ATTEMPTS || 5);
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 if (!baseUrl || !siteId || !authToken) {
@@ -75,15 +77,31 @@ function consentFields(marker) {
   };
 }
 
+function retryDelay(response, attempt) {
+  const retryAfter = Number(response.headers.get('retry-after') || 0);
+  if (Number.isFinite(retryAfter) && retryAfter > 0) return retryAfter * 1_000;
+  return Math.min(rateLimitBackoffMs * attempt, 120_000);
+}
+
+async function submitWithRateLimitRetry(body) {
+  let response;
+  for (let attempt = 1; attempt <= maxSubmitAttempts; attempt += 1) {
+    response = await fetch(`${baseUrl}/`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body,
+      redirect: 'manual',
+    });
+    if (response.status !== 429 || attempt === maxSubmitAttempts) return { response, attempts: attempt };
+    await sleep(retryDelay(response, attempt));
+  }
+  return { response, attempts: maxSubmitAttempts };
+}
+
 async function submitAndVerify({ formName, marker, values, expected, purpose }) {
   const body = new URLSearchParams({ 'form-name': formName, ...values, ...consentFields(marker) });
-  const response = await fetch(`${baseUrl}/`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/x-www-form-urlencoded' },
-    body,
-    redirect: 'manual',
-  });
-  const submission = await waitForSubmission(marker);
+  const { response, attempts } = await submitWithRateLimitRetry(body);
+  const submission = response.status === 429 ? null : await waitForSubmission(marker);
   const data = submission?.data || {};
   const mismatches = Object.entries(expected).filter(([key, value]) => String(data[key] ?? '') !== String(value));
   const ok = response.status >= 200 && response.status < 400 && Boolean(submission) && mismatches.length === 0;
@@ -92,6 +110,7 @@ async function submitAndVerify({ formName, marker, values, expected, purpose }) 
     purpose,
     marker,
     httpStatus: response.status,
+    submitAttempts: attempts,
     stored: Boolean(submission),
     storageState: submission?.storageState || null,
     expected,
@@ -106,7 +125,7 @@ async function submitAndVerify({ formName, marker, values, expected, purpose }) 
 
 const consultationBase = {
   full_name: `${runTag} — NOT A REAL CLIENT`,
-  email: `m12d-consultation-${Date.now()}@example.invalid`,
+  email: `m12e-consultation-${Date.now()}@example.invalid`,
   mobile_number: '09170000000',
   location: 'TEST LOCATION',
   inquiry_type: 'Financial planning',
@@ -125,7 +144,7 @@ await submitAndVerify({
 await submitAndVerify({
   formName: 'consultation',
   marker: `${runTag}-CONSULTATION-WITH-MESSAGE`,
-  values: { ...consultationBase, email: `m12d-consultation-message-${Date.now()}@example.invalid`, message: 'Synthetic optional note' },
+  values: { ...consultationBase, email: `m12e-consultation-message-${Date.now()}@example.invalid`, message: 'Synthetic optional note' },
   expected: { message: 'Synthetic optional note', processing_consent: 'Yes', marketing_consent: 'No' },
   purpose: 'Consultation with Additional Notes',
 });
@@ -134,7 +153,7 @@ for (const employmentStatus of employmentOptions) {
   const marker = `${runTag}-EMPLOYMENT-${employmentStatus.toUpperCase().replace(/\W+/g, '-')}`;
   const values = {
     full_name: `${marker} — NOT A REAL APPLICANT`,
-    email: `m12d-${employmentStatus.toLowerCase()}-${Date.now()}@example.invalid`,
+    email: `m12e-${employmentStatus.toLowerCase()}-${Date.now()}@example.invalid`,
     mobile_number: '09170000000',
     location: 'TEST LOCATION',
     employment_status: employmentStatus,
@@ -159,7 +178,7 @@ for (const educationalBackground of educationOptions) {
   const marker = `${runTag}-EDUCATION-${educationalBackground.toUpperCase().replace(/\W+/g, '-').slice(0, 48)}`;
   const values = {
     full_name: `${marker} — NOT A REAL APPLICANT`,
-    email: `m12d-education-${Date.now()}-${Math.random().toString(16).slice(2)}@example.invalid`,
+    email: `m12e-education-${Date.now()}-${Math.random().toString(16).slice(2)}@example.invalid`,
     mobile_number: '09170000000',
     location: 'TEST LOCATION',
     employment_status: 'Employed',
@@ -189,4 +208,4 @@ report.summary = {
 };
 await mkdir(path.dirname(outputPath), { recursive: true });
 await writeFile(outputPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
-if (!report.passed) throw new Error(`Milestone 12D affected-form option tests failed. See ${outputPath}`);
+if (!report.passed) throw new Error(`Milestone 12E affected-form option tests failed. See ${outputPath}`);
