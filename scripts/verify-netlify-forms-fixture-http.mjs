@@ -2,8 +2,6 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
-const STRICT_CSP = "default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; connect-src 'self'; img-src 'self' data:; style-src 'self' 'sha256-UBEM9fc6mr/QFtxsjMEiHUkqNJwq2BWrDJ2hXnKxpY4='; script-src 'self' 'sha256-aAd2Tn6ICOO7lGhHJHaPanNU21uWI478tE+9d9Hltjk='";
-
 function parseHeaders(raw) {
   const blocks = raw.trim().split(/\r?\n\r?\n/).filter(Boolean);
   const block = blocks.at(-1) || '';
@@ -39,6 +37,7 @@ export async function verifyHttpIsolation({
   const headers = parseHeaders(await readFile(headersPath, 'utf8'));
   const body = await readFile(bodyPath, 'utf8');
   const inventory = JSON.parse(await readFile(inventoryPath, 'utf8'));
+  const expectedCsp = inventory.effectiveFixtureCsp || '';
   const functions = status.available_functions || [];
   const edge = status.edge_functions_present === true;
   const redirectRules = countSummary(status, /(\d+)\s+redirect rules? processed/i);
@@ -52,14 +51,14 @@ export async function verifyHttpIsolation({
     effectiveRedirectRules: redirectRules,
     effectiveHeaderRules: headerRules,
     productionRedirectsPresent: redirectRules > 0,
-    productionHeadersPresent: headers['referrer-policy'] !== 'no-referrer' || csp !== STRICT_CSP,
+    productionHeadersPresent: headers['referrer-policy'] !== 'no-referrer' || !expectedCsp || csp !== expectedCsp,
     productionAnalyticsOriginsPresent: /(googletagmanager|google-analytics|analytics\.google|g\.doubleclick|facebook\.com|connect\.facebook)/i.test(csp),
     htmlNoindexPresent: /<meta\s+name="robots"\s+content="noindex,nofollow,noarchive"/i.test(body),
     headerNoindexPresent: /noindex/i.test(headers['x-robots-tag'] || '') && /nofollow/i.test(headers['x-robots-tag'] || '') && /noarchive/i.test(headers['x-robots-tag'] || ''),
     cacheControlNoStorePresent: /(?:^|,)\s*no-store(?:,|$)/i.test(headers['cache-control'] || ''),
     referrerPolicyNoReferrerPresent: headers['referrer-policy'] === 'no-referrer',
     effectiveCsp: csp,
-    expectedCsp: STRICT_CSP,
+    expectedCsp,
     googleTagManagerPresent: /googletagmanager/i.test(csp),
     googleAnalyticsPresent: /(google-analytics|analytics\.google|g\.doubleclick)/i.test(csp),
     metaPixelPresent: /(facebook\.com|connect\.facebook)/i.test(csp),
