@@ -9,7 +9,8 @@ const optionHarnessUrl = new URL('../../scripts/test-milestone-12d-form-options.
 test('synthetic-only workflow cannot deploy and retests only the approved frozen fixture', async () => {
   const workflow = await readFile(workflowUrl, 'utf8');
   assert.match(workflow, /Milestone 11 Isolated Forms Synthetic Retest/);
-  assert.match(workflow, /RUN_ISOLATED_FORMS_SYNTHETIC milestone-12e-options 6a6655d7af3341b646d4d12f/);
+  assert.match(workflow, /EXPECTED_RETEST_DEPLOY_ID: 6a6655d7af3341b646d4d12f/);
+  assert.match(workflow, /RUN_ISOLATED_FORMS_SYNTHETIC milestone-12e-options \$EXPECTED_RETEST_DEPLOY_ID/);
   assert.match(workflow, /RETEST_FORM_NAME/);
   assert.match(workflow, /test-milestone-12d-form-options\.mjs/);
   assert.match(workflow, /verify-netlify-forms-fixture-http\.mjs/);
