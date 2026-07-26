@@ -56,13 +56,14 @@ test('runtime and HTTP gate accepts only zero-runtime strict fixture responses',
   const dir=await mkdtemp(path.join(os.tmpdir(),'m11-http-'));
   try {
     const root=path.join(dir,'forms'); await mkdir(root,{recursive:true});
+    const fixtureCsp="default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; connect-src 'self'; img-src 'self' data:; style-src 'self' 'sha256-UBEM9fc6mr/QFtxsjMEiHUkqNJwq2BWrDJ2hXnKxpY4='; script-src 'self' 'sha256-uYPyDyza6RHoxujItx0Xts8lWcO3Ye7XQ+wC5NbblWE='";
     await writeFile(path.join(root,'deploy-status-raw.json'),JSON.stringify({state:'ready',site_id:'e07260a5-6308-4f68-a41d-d26f267df9ab',available_functions:[],edge_functions_present:false,summary:{messages:[{title:'1 header rule processed'}]}}));
     await writeFile(path.join(root,'deploy-safe.json'),JSON.stringify({isolatedSiteId:'e07260a5-6308-4f68-a41d-d26f267df9ab'}));
-    await writeFile(path.join(root,'fixture-inventory.json'),JSON.stringify({publishedFiles:['index.html','confirmation.html'],checks:{productionEnvironmentReferencesAbsent:true}}));
+    await writeFile(path.join(root,'fixture-inventory.json'),JSON.stringify({publishedFiles:['index.html','confirmation.html'],effectiveFixtureCsp:fixtureCsp,checks:{productionEnvironmentReferencesAbsent:true}}));
     await writeFile(path.join(root,'fixture-response-body.html'),'<meta name="robots" content="noindex,nofollow,noarchive"><div>TEST ENVIRONMENT — SYNTHETIC DATA ONLY</div>');
-    await writeFile(path.join(root,'fixture-response-headers.txt'),['HTTP/2 200','x-robots-tag: noindex, nofollow, noarchive','cache-control: no-store','referrer-policy: no-referrer',"content-security-policy: default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; connect-src 'self'; img-src 'self' data:; style-src 'self' 'sha256-UBEM9fc6mr/QFtxsjMEiHUkqNJwq2BWrDJ2hXnKxpY4='; script-src 'self' 'sha256-aAd2Tn6ICOO7lGhHJHaPanNU21uWI478tE+9d9Hltjk='",'x-content-type-options: nosniff',''].join('\n'));
+    await writeFile(path.join(root,'fixture-response-headers.txt'),['HTTP/2 200','x-robots-tag: noindex, nofollow, noarchive','cache-control: no-store','referrer-policy: no-referrer',`content-security-policy: ${fixtureCsp}`,'x-content-type-options: nosniff',''].join('\n'));
     const report=await verifyHttpIsolation({deployStatusPath:path.join(root,'deploy-status-raw.json'),deploySafePath:path.join(root,'deploy-safe.json'),headersPath:path.join(root,'fixture-response-headers.txt'),bodyPath:path.join(root,'fixture-response-body.html'),inventoryPath:path.join(root,'fixture-inventory.json'),outputPath:path.join(root,'http-isolation.json')});
-    assert.equal(report.passed,true); assert.equal(report.effectiveRedirectRules,0); assert.equal(report.netlifyFunctionsCount,0); assert.equal(report.edgeFunctionsCount,0);
+    assert.equal(report.passed,true); assert.equal(report.expectedCsp,fixtureCsp); assert.equal(report.effectiveRedirectRules,0); assert.equal(report.netlifyFunctionsCount,0); assert.equal(report.edgeFunctionsCount,0);
   } finally { await rm(dir,{recursive:true,force:true}); }
 });
 
