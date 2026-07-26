@@ -65,10 +65,9 @@ No Critical or High defect is confirmed. Moderate and Low findings require corre
 
 - [Milestone 12C review evidence and remediation plan](./milestone-12c-review-evidence-and-remediation-plan.md)
 - [Milestone 12C owner decision form](./milestone-12c-owner-decision-form.md)
-- [Baseline human accessibility matrix](./milestone-12-human-accessibility-review.md)
+- [Human accessibility status](./milestone-12-human-accessibility-review.md)
+- [Provisional defect index](./milestone-12-open-defects.md)
 - [Stakeholder approval register](./milestone-12-approval-register.md)
-
-The Milestone 12C evidence document is the authoritative addendum for the submitted JC review. Unsupported baseline rows remain NOT TESTED.
 
 ## Public-source and testing status
 
