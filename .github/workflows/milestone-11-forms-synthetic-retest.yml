@@ -1,0 +1,182 @@
+name: Milestone 11 Isolated Forms Synthetic Retest
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_synthetic_retest:
+        description: Type RUN_ISOLATED_FORMS_SYNTHETIC
+        required: true
+        type: string
+      form_name:
+        description: Isolated synthetic verification mode
+        required: true
+        default: milestone-12e-options
+        type: string
+      deploy_id:
+        description: Accepted clean isolated Deploy ID
+        required: true
+        type: string
+  pull_request:
+    branches: [main]
+    types: [synchronize]
+    paths:
+      - .github/forms-synthetic-retest-request
+
+permissions:
+  contents: read
+
+env:
+  EXPECTED_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+  EXPECTED_FORM_TEST_SITE_ID: e07260a5-6308-4f68-a41d-d26f267df9ab
+  EXPECTED_RETEST_DEPLOY_ID: 6a6655d7af3341b646d4d12f
+
+jobs:
+  explicit-synthetic-retest-trigger:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      eligible: ${{ steps.gate.outputs.eligible }}
+      form_name: ${{ steps.gate.outputs.form_name }}
+      deploy_id: ${{ steps.gate.outputs.deploy_id }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_COMMIT }}
+          fetch-depth: 2
+      - name: Verify explicit synthetic-only retest request
+        id: gate
+        shell: bash
+        env:
+          CONFIRM_SYNTHETIC_RETEST: ${{ inputs.confirm_synthetic_retest }}
+          INPUT_FORM_NAME: ${{ inputs.form_name }}
+          INPUT_DEPLOY_ID: ${{ inputs.deploy_id }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          eligible=false
+          form_name=''
+          deploy_id=''
+          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ] \
+            && [ "${CONFIRM_SYNTHETIC_RETEST:-}" = "RUN_ISOLATED_FORMS_SYNTHETIC" ] \
+            && [ "${INPUT_FORM_NAME:-}" = "milestone-12e-options" ] \
+            && [ "${INPUT_DEPLOY_ID:-}" = "$EXPECTED_RETEST_DEPLOY_ID" ]; then
+            eligible=true
+            form_name="$INPUT_FORM_NAME"
+            deploy_id="$INPUT_DEPLOY_ID"
+          elif [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
+            message=$(git show -s --format=%B "$EXPECTED_COMMIT")
+            changed=$(git diff-tree --no-commit-id --name-only -r "$EXPECTED_COMMIT")
+            request=$(cat .github/forms-synthetic-retest-request 2>/dev/null || true)
+            if [[ "$PR_TITLE" == *"[run-forms-synthetic]"* ]] \
+              && [[ "$message" == *"[run-forms-synthetic]"* ]] \
+              && [ "$changed" = ".github/forms-synthetic-retest-request" ] \
+              && [ "$request" = "RUN_ISOLATED_FORMS_SYNTHETIC milestone-12e-options $EXPECTED_RETEST_DEPLOY_ID" ]; then
+              eligible=true
+              form_name='milestone-12e-options'
+              deploy_id="$EXPECTED_RETEST_DEPLOY_ID"
+            fi
+          fi
+          echo "eligible=$eligible" >> "$GITHUB_OUTPUT"
+          echo "form_name=$form_name" >> "$GITHUB_OUTPUT"
+          echo "deploy_id=$deploy_id" >> "$GITHUB_OUTPUT"
+
+  retest-isolated-form-only:
+    needs: explicit-synthetic-retest-trigger
+    if: needs.explicit-synthetic-retest-trigger.outputs.eligible == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      FORM_TEST_AUTH_TOKEN: ${{ secrets.NETLIFY_FORM_TEST_AUTH_TOKEN }}
+      FORM_TEST_SITE_ID: ${{ secrets.NETLIFY_FORM_TEST_SITE_ID }}
+      NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_FORM_TEST_AUTH_TOKEN }}
+      NETLIFY_SITE_ID: ${{ secrets.NETLIFY_FORM_TEST_SITE_ID }}
+      RETEST_FORM_NAME: ${{ needs.explicit-synthetic-retest-trigger.outputs.form_name }}
+      RETEST_DEPLOY_ID: ${{ needs.explicit-synthetic-retest-trigger.outputs.deploy_id }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_COMMIT }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install repository test dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Run protected preflight and safe project-access check
+        shell: bash
+        run: |
+          node scripts/forms-secret-preflight.mjs
+          node scripts/forms-netlify-access-check.mjs
+          node - <<'NODE'
+          const fs = require('fs');
+          const secret = JSON.parse(fs.readFileSync('test-results/forms/secrets-status.json', 'utf8'));
+          const access = JSON.parse(fs.readFileSync('test-results/forms/access-status.json', 'utf8'));
+          if (secret.status !== 'ready') throw new Error('Protected secret preflight is not ready.');
+          if (access.status !== 'ready' || access.netlifyAuthenticationSucceeded !== true || access.isolatedProjectAccessible !== true) {
+            throw new Error('Safe Netlify authentication or isolated-project access check failed.');
+          }
+          NODE
+
+      - name: Revalidate accepted clean deployment and fixture isolation
+        shell: bash
+        run: |
+          mkdir -p test-results/forms
+          node scripts/inspect-netlify-forms-fixture.mjs
+          curl --silent --show-error --fail -H "Authorization: Bearer $NETLIFY_AUTH_TOKEN" \
+            "https://api.netlify.com/api/v1/deploys/$RETEST_DEPLOY_ID" > test-results/forms/deploy-status-raw.json
+          node - <<'NODE'
+          const fs = require('fs');
+          const status = JSON.parse(fs.readFileSync('test-results/forms/deploy-status-raw.json', 'utf8'));
+          const expectedId = process.env.RETEST_DEPLOY_ID;
+          const expectedSite = process.env.EXPECTED_FORM_TEST_SITE_ID;
+          const safe = {
+            deployId: status.id || '',
+            url: status.ssl_url || status.url || 'https://avodah-form-verification-m5.netlify.app',
+            deployUrl: status.deploy_ssl_url || status.deploy_url || '',
+            revision: status.title || '',
+            isolatedSiteId: expectedSite,
+          };
+          if (safe.deployId !== expectedId) throw new Error('Unexpected isolated Deploy ID.');
+          if (status.site_id !== expectedSite) throw new Error('Unexpected isolated Site ID.');
+          if (!['ready','current'].includes(status.state)) throw new Error('Accepted isolated deployment is not ready.');
+          if ((status.available_functions || []).length !== 0 || status.edge_functions_present === true) {
+            throw new Error('Accepted isolated deployment contains runtime Functions.');
+          }
+          if (!safe.deployUrl) throw new Error('Immutable isolated deployment URL is missing.');
+          fs.writeFileSync('test-results/forms/deploy-safe.json', JSON.stringify(safe, null, 2));
+          NODE
+          deploy_url=$(node -e "console.log(require('./test-results/forms/deploy-safe.json').deployUrl)")
+          curl --silent --show-error --fail --dump-header test-results/forms/fixture-response-headers.txt \
+            --output test-results/forms/fixture-response-body.html "$deploy_url/"
+          node scripts/verify-netlify-forms-fixture-http.mjs
+
+      - name: Revalidate exact six Forms schemas and absence of hooks
+        shell: bash
+        run: |
+          curl --silent --show-error --fail -H "Authorization: Bearer $NETLIFY_AUTH_TOKEN" \
+            "https://api.netlify.com/api/v1/sites/$NETLIFY_SITE_ID/forms" > test-results/forms/netlify-forms.json
+          curl --silent --show-error --fail -H "Authorization: Bearer $NETLIFY_AUTH_TOKEN" \
+            "https://api.netlify.com/api/v1/hooks?site_id=$NETLIFY_SITE_ID" > test-results/forms/site-hooks.json
+          node -e "const hooks=require('./test-results/forms/site-hooks.json'); if(hooks.length) throw new Error('Unexpected hooks are configured on the isolated project.')"
+          FORM_FIXTURE_HTML=qa/form-fixture/index.html \
+            NETLIFY_FORMS_JSON=test-results/forms/netlify-forms.json \
+            FORM_SCHEMA_REPORT=test-results/forms/schema-report.json \
+            node scripts/verify-isolated-form-schemas.mjs
+
+      - name: Retest Milestone 12E affected options and clean synthetic records
+        shell: bash
+        run: |
+          export ISOLATED_FORM_URL=$(node -e "console.log(require('./test-results/forms/deploy-safe.json').deployUrl)")
+          export M12D_FORM_OPTIONS_REPORT=test-results/forms/milestone-12e-form-options.json
+          export M12D_FORM_COOLDOWN_MS=8000
+          export M12D_FORM_RATE_LIMIT_BACKOFF_MS=30000
+          export M12D_FORM_MAX_ATTEMPTS=5
+          node scripts/test-milestone-12d-form-options.mjs
+
+      - name: Upload synthetic-only retest evidence
+        if: ${{ success() || failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: milestone-12e-synthetic-retest-${{ env.EXPECTED_COMMIT }}-${{ github.run_attempt }}
+          path: test-results/forms
+          if-no-files-found: error
+          retention-days: 30

@@ -1,0 +1,194 @@
+name: Milestone 9 Definitive Evidence
+
+on:
+  push:
+    branches: [agent/blueprint-foundation]
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: milestone-9-qa-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  PLAYWRIGHT_BASE_URL: https://deploy-preview-8--avodahwealthadvisory.netlify.app
+  EXPECTED_RC_REVISION: m9-definitive-evidence-v1
+  EXPECTED_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+
+jobs:
+  forms-secrets-preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      status: ${{ steps.forms-preflight.outputs.status }}
+    env:
+      FORM_TEST_AUTH_TOKEN: ${{ secrets.NETLIFY_FORM_TEST_AUTH_TOKEN }}
+      FORM_TEST_SITE_ID: ${{ secrets.NETLIFY_FORM_TEST_SITE_ID }}
+      EXPECTED_FORM_TEST_SITE_ID: e07260a5-6308-4f68-a41d-d26f267df9ab
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_COMMIT }}
+      - name: Record isolated Forms secret-name status without exposing values
+        id: forms-preflight
+        run: node scripts/forms-secret-preflight.mjs
+      - name: Upload isolated Forms secret preflight evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: milestone-11-forms-secrets-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_attempt }}
+          path: test-results/forms/secrets-status.json
+          if-no-files-found: error
+          retention-days: 30
+
+  synchronization-isolation:
+    if: ${{ !contains(format('{0} {1}', github.event.head_commit.message, github.event.pull_request.title), '[preflight-only]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_COMMIT }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - name: Reproduce Netlify deploy-preview static build
+        env:
+          CONTEXT: deploy-preview
+          COMMIT_REF: ${{ env.EXPECTED_COMMIT }}
+          DEPLOY_ID: gha-${{ github.run_id }}
+          BUILD_ID: gha-${{ github.run_id }}
+          DEPLOY_URL: https://gha-${{ github.run_id }}--avodahwealthadvisory.netlify.app
+          DEPLOY_PRIME_URL: ${{ env.PLAYWRIGHT_BASE_URL }}
+          BRANCH: agent/blueprint-foundation
+          REVIEW_ID: 8
+        run: npm run build
+      - name: Run synchronization isolation, Edge, and build-evidence unit tests
+        run: npm run test:unit
+      - name: Upload synchronization and build evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: milestone-9-sync-build-${{ env.EXPECTED_COMMIT }}
+          path: |
+            rc-revision.json
+            _headers
+            test-results/unit
+          if-no-files-found: warn
+          retention-days: 30
+
+  browser-qa:
+    needs: synchronization-isolation
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_COMMIT }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - name: Install ${{ matrix.browser }} browser
+        run: npx playwright install --with-deps ${{ matrix.browser }}
+      - name: Verify exact deployed revision and protected preview
+        env:
+          GATE_OUTPUT_KEY: browser
+        run: node scripts/verify-release-gate.mjs
+      - name: Run ${{ matrix.browser }} browser QA
+        run: npm run test:e2e -- --project=${{ matrix.browser }}
+      - name: Upload ${{ matrix.browser }} definitive QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: milestone-9-${{ matrix.browser }}-qa-${{ env.EXPECTED_COMMIT }}
+          path: |
+            playwright-report
+            test-results
+          if-no-files-found: warn
+          retention-days: 30
+
+  performance:
+    needs: synchronization-isolation
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_COMMIT }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - name: Install Chromium for Lighthouse
+        run: npx playwright install --with-deps chromium
+      - name: Verify exact deployed revision and protected preview
+        env:
+          GATE_OUTPUT_KEY: lighthouse
+        run: node scripts/verify-release-gate.mjs
+      - name: Run Lighthouse on priority workflows
+        shell: bash
+        run: |
+          CHROME_PATH=$(node -e "console.log(require('playwright').chromium.executablePath())")
+          export CHROME_PATH
+          declare -A pages=(
+            [homepage]="/"
+            [consultation]="/consultation/"
+            [client-support]="/client-support/"
+            [recruitment-application]="/careers/apply/"
+          )
+          lighthouse_status=0
+          for name in homepage consultation client-support recruitment-application; do
+            npx --yes lighthouse@13.4.1 "${PLAYWRIGHT_BASE_URL}${pages[$name]}" \
+              --chrome-path="$CHROME_PATH" \
+              --chrome-flags="--headless --no-sandbox" \
+              --only-categories=performance,accessibility,best-practices,seo \
+              --output=json --output=html \
+              --output-path="test-results/lighthouse/$name" \
+              --quiet || lighthouse_status=1
+          done
+          node - <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+          const directory = 'test-results/lighthouse';
+          const reports = fs.readdirSync(directory).filter(name => name.endsWith('.report.json'));
+          const summary = reports.map(file => {
+            const report = JSON.parse(fs.readFileSync(path.join(directory, file), 'utf8'));
+            const a = report.audits || {};
+            return {
+              page: file.replace('.report.json', ''),
+              finalUrl: report.finalUrl,
+              runtimeError: report.runtimeError || null,
+              scores: Object.fromEntries(Object.entries(report.categories || {}).map(([key, value]) => [key, value.score == null ? null : Math.round(value.score * 100)])),
+              metrics: {
+                largestContentfulPaintMs: a['largest-contentful-paint']?.numericValue ?? null,
+                cumulativeLayoutShift: a['cumulative-layout-shift']?.numericValue ?? null,
+                totalBlockingTimeMs: a['total-blocking-time']?.numericValue ?? null,
+                speedIndexMs: a['speed-index']?.numericValue ?? null,
+              },
+              consoleErrors: a['errors-in-console']?.details?.items || [],
+              failedRequests: a['network-requests']?.details?.items?.filter(item => Number(item.statusCode) >= 400) || [],
+            };
+          });
+          fs.writeFileSync(path.join(directory, 'summary.json'), JSON.stringify(summary, null, 2));
+          if (summary.length !== 4 || summary.some(item => item.runtimeError)) process.exitCode = 1;
+          NODE
+          exit "$lighthouse_status"
+      - name: Upload Lighthouse evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: milestone-9-lighthouse-${{ env.EXPECTED_COMMIT }}
+          path: test-results/lighthouse
+          if-no-files-found: warn
+          retention-days: 30

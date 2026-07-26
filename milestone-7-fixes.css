@@ -1,0 +1,149 @@
+/* Milestone 7 and 9: targeted browser-QA remediation. */
+
+/* Win over the legacy visibility guard's high-specificity !important rules. */
+body .advisory-pathways-home .advisory-pathway-card .service-number,
+body .home-checklist-card .section-kicker {
+  color: #ffffff !important;
+}
+
+body .avodah-footer .footer-grid-launch h2,
+body .avodah-footer .footer-grid-launch h3 {
+  color: #ffffff !important;
+}
+
+/* Preserve reflow at 320 CSS pixels without clipping essential controls. */
+html,
+body {
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+html {
+  overflow-x: clip;
+}
+
+*,
+*::before,
+*::after {
+  min-width: 0;
+}
+
+img,
+svg,
+video,
+canvas,
+iframe,
+table,
+form,
+fieldset,
+input,
+select,
+textarea,
+button {
+  max-width: 100%;
+}
+
+.site-header,
+.avodah-footer,
+.footer-container,
+.footer-grid-launch,
+.footer-bottom-row,
+.container,
+.intake-shell,
+.intake-card,
+.workflow-shell,
+.workflow-card,
+.booking-widget,
+.booking-panel {
+  min-width: 0 !important;
+  max-width: 100%;
+}
+
+.footer-grid-launch a,
+.footer-grid-launch p,
+.footer-bottom-row,
+.brand,
+.nav a,
+.button,
+.workflow-reference,
+.confirmation-reference,
+.booking-success {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* FAQ expansion is class-based so strict CSP can keep style attributes blocked. */
+.faq-list details .faq-answer {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 220ms ease;
+}
+
+.faq-list details[open] .faq-answer,
+.faq-list details.is-open .faq-answer {
+  max-height: 200rem;
+}
+
+/* Consultation progress uses finite CSS states instead of element.style writes. */
+.progress-track[data-step="1"] #progress-bar {
+  width: 33.333%;
+}
+
+.progress-track[data-step="2"] #progress-bar {
+  width: 66.667%;
+}
+
+.progress-track[data-step="3"] #progress-bar {
+  width: 100%;
+}
+
+@media (max-width: 420px) {
+  .site-header {
+    gap: 8px;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .brand {
+    min-width: 0;
+    max-width: calc(100% - 52px);
+    font-size: 0.86rem;
+  }
+
+  .brand-mark {
+    flex: 0 0 auto;
+  }
+
+  .brand > span:last-child {
+    overflow-wrap: anywhere;
+  }
+
+  .footer-container,
+  .container {
+    width: min(100% - 24px, 1120px);
+  }
+
+  .form-grid,
+  .launch-pathway-grid,
+  .footer-grid-launch,
+  .confirmation-actions,
+  .form-actions {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .confirmation-actions,
+  .form-actions {
+    align-items: stretch;
+  }
+
+  .confirmation-actions .button,
+  .form-actions .button {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .faq-list details .faq-answer {
+    transition: none;
+  }
+}

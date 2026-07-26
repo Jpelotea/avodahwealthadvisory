@@ -1,0 +1,206 @@
+/* Milestone 12D — bounded accessibility, reflow, and design consistency corrections */
+
+:root {
+  --m12d-header-cta-bg: #0b5a42;
+  --m12d-header-cta-hover-bg: #073e2f;
+  --m12d-header-cta-text: #ffffff;
+  --m12d-focus-ring: #ffcf4a;
+}
+
+html body .site-header .nav a.button.button-primary,
+html body .site-header .nav a.button.button-primary:visited {
+  background: var(--m12d-header-cta-bg) !important;
+  color: var(--m12d-header-cta-text) !important;
+  border-color: var(--m12d-header-cta-bg) !important;
+}
+
+html body .site-header .nav a.button.button-primary:hover {
+  background: var(--m12d-header-cta-hover-bg) !important;
+  color: var(--m12d-header-cta-text) !important;
+  border-color: var(--m12d-header-cta-hover-bg) !important;
+}
+
+html body .site-header .nav a.button.button-primary:focus-visible {
+  background: var(--m12d-header-cta-bg) !important;
+  color: var(--m12d-header-cta-text) !important;
+  outline: 3px solid var(--m12d-focus-ring) !important;
+  outline-offset: 3px;
+}
+
+html body .site-header .nav a.button.button-primary:active {
+  background: #052f24 !important;
+  color: var(--m12d-header-cta-text) !important;
+}
+
+html body .services-next-step-card .section-kicker {
+  color: #ff6b72 !important;
+}
+
+.avodah-footer .footer-container,
+.avodah-footer .footer-grid-launch,
+.avodah-footer .footer-main-row,
+.avodah-footer .footer-contact-inline,
+.avodah-footer .footer-meta-item,
+.avodah-footer section {
+  min-width: 0;
+}
+
+.avodah-footer .footer-grid-launch,
+.avodah-footer .footer-main-row,
+.avodah-footer .footer-contact-inline {
+  flex-wrap: wrap;
+}
+
+.avodah-footer a[href^="mailto:"],
+.avodah-footer .footer-meta-item a,
+.avodah-footer p,
+.avodah-footer section {
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.hero-actions .button-primary {
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.35;
+  white-space: normal;
+  text-wrap: balance;
+  padding-inline: clamp(1rem, 2.5vw, 1.5rem);
+  max-width: min(100%, 25rem);
+}
+
+.workflow-page,
+.intake-shell,
+.workflow-card,
+.intake-card {
+  min-width: 0;
+  max-width: 100%;
+  font-family: "Open Sans", Arial, sans-serif;
+}
+
+.workflow-page h1,
+.workflow-page h2,
+.workflow-page h3,
+.workflow-page .section-kicker,
+.intake-shell h1,
+.intake-shell h2,
+.intake-shell h3,
+.intake-shell .eyebrow,
+.workflow-page .button,
+.intake-shell .button {
+  font-family: Montserrat, Arial, sans-serif;
+}
+
+.workflow-page h1,
+.intake-shell h1,
+.cookie-banner,
+.cookie-banner p,
+.cookie-banner strong,
+.cookie-actions,
+.cookie-actions .button {
+  overflow-wrap: anywhere;
+}
+
+.cookie-banner {
+  max-width: calc(100vw - 32px);
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.cookie-banner > * {
+  min-width: 0;
+}
+
+.cookie-banner > :first-child {
+  flex: 1 1 22rem;
+}
+
+.cookie-banner .cookie-actions {
+  flex: 1 1 18rem;
+  min-width: 0;
+}
+
+.cookie-banner .cookie-actions .button {
+  flex: 1 1 10rem;
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+}
+
+.field-hint,
+.reference-guidance {
+  display: block;
+  margin-top: 0.4rem;
+  color: #475569;
+  font-size: 0.925rem;
+  line-height: 1.5;
+}
+
+.success-panel .reference,
+.reference-guidance {
+  overflow-wrap: anywhere;
+}
+
+.service-category-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+  gap: clamp(1rem, 2vw, 1.5rem);
+  align-items: stretch;
+}
+
+.service-category-card,
+.service-subcategory-groups,
+.service-subgroup,
+.service-link-list,
+.service-link-list li,
+.service-link-list a {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.service-category-card {
+  height: auto;
+  overflow: visible;
+}
+
+.service-link-list a,
+.service-category-card h2,
+.service-category-card h3 {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 900px) {
+  .service-category-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .site-header .nav .button-primary {
+    white-space: normal;
+  }
+
+  .cookie-banner {
+    align-items: stretch;
+  }
+}
+
+@media (max-width: 720px) {
+  .cookie-banner {
+    flex-direction: column;
+  }
+
+  .cookie-banner > :first-child,
+  .cookie-banner .cookie-actions {
+    flex-basis: auto;
+    width: 100%;
+  }
+}
+
+@media (max-width: 520px) {
+  .avodah-footer .footer-grid-launch {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-actions .button-primary {
+    width: 100%;
+  }
+}

@@ -1,0 +1,90 @@
+name: Milestone 11 Forms Preflight and Access
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_preflight:
+        description: Type RUN_FORMS_PREFLIGHT
+        required: true
+        type: string
+  pull_request:
+    branches: [main]
+    types: [synchronize]
+    paths:
+      - .github/forms-preflight-request
+
+permissions:
+  contents: read
+
+env:
+  EXPECTED_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+  EXPECTED_FORM_TEST_SITE_ID: e07260a5-6308-4f68-a41d-d26f267df9ab
+
+jobs:
+  explicit-preflight-trigger:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      eligible: ${{ steps.gate.outputs.eligible }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_COMMIT }}
+          fetch-depth: 2
+      - name: Verify explicit preflight-only request
+        id: gate
+        shell: bash
+        env:
+          CONFIRM_PREFLIGHT: ${{ inputs.confirm_preflight }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          eligible=false
+          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ] && [ "${CONFIRM_PREFLIGHT:-}" = "RUN_FORMS_PREFLIGHT" ]; then
+            eligible=true
+          elif [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
+            message=$(git show -s --format=%B "$EXPECTED_COMMIT")
+            changed=$(git diff-tree --no-commit-id --name-only -r "$EXPECTED_COMMIT")
+            request=$(cat .github/forms-preflight-request 2>/dev/null || true)
+            if [[ "$PR_TITLE" == *"[run-forms-preflight]"* ]] \
+              && [[ "$message" == *"[run-forms-preflight]"* ]] \
+              && [ "$changed" = ".github/forms-preflight-request" ] \
+              && [ "$request" = "RUN_FORMS_PREFLIGHT e07260a5-6308-4f68-a41d-d26f267df9ab" ]; then
+              eligible=true
+            fi
+          fi
+          echo "eligible=$eligible" >> "$GITHUB_OUTPUT"
+
+  forms-preflight-and-access:
+    needs: explicit-preflight-trigger
+    if: needs.explicit-preflight-trigger.outputs.eligible == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      FORM_TEST_AUTH_TOKEN: ${{ secrets.NETLIFY_FORM_TEST_AUTH_TOKEN }}
+      FORM_TEST_SITE_ID: ${{ secrets.NETLIFY_FORM_TEST_SITE_ID }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_COMMIT }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate preflight and access contracts
+        run: node --test tests/unit/forms-secret-preflight-contract.test.mjs tests/unit/forms-fixture-isolation.test.mjs
+      - name: Run protected Forms secret preflight
+        id: secret-preflight
+        run: node scripts/forms-secret-preflight.mjs
+      - name: Run safe Netlify authentication and project-access check
+        id: access-check
+        if: steps.secret-preflight.outputs.status == 'ready'
+        run: node scripts/forms-netlify-access-check.mjs
+      - name: Upload preflight and access evidence
+        if: ${{ success() || failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: milestone-11-preflight-access-${{ env.EXPECTED_COMMIT }}-${{ github.run_attempt }}
+          path: |
+            test-results/forms/secrets-status.json
+            test-results/forms/access-status.json
+          if-no-files-found: error
+          retention-days: 30

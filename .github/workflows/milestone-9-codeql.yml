@@ -1,0 +1,138 @@
+name: Milestone 9 CodeQL
+
+on:
+  push:
+    branches: [agent/blueprint-foundation]
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+  packages: read
+
+concurrency:
+  group: milestone-9-codeql-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  EXPECTED_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+
+jobs:
+  javascript-security:
+    name: CodeQL JavaScript security and quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_COMMIT }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: javascript-typescript
+          build-mode: none
+          queries: security-and-quality
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Verify build and unit security gates
+        env:
+          CONTEXT: deploy-preview
+          COMMIT_REF: ${{ env.EXPECTED_COMMIT }}
+          DEPLOY_ID: codeql-${{ github.run_id }}
+          BUILD_ID: codeql-${{ github.run_id }}
+          DEPLOY_URL: https://codeql-${{ github.run_id }}--avodahwealthadvisory.netlify.app
+          DEPLOY_PRIME_URL: https://deploy-preview-8--avodahwealthadvisory.netlify.app
+          BRANCH: agent/blueprint-foundation
+          REVIEW_ID: 8
+        run: |
+          npm run build
+          npm run test:unit
+      - name: Analyze exact branch head without remote publication dependency
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: /language:javascript-typescript
+          upload: never
+          output: codeql-results
+          post-processed-sarif-path: codeql-results/post-processed
+      - name: Summarize current CodeQL results and enforce severity gate
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+
+          function sarifFiles(root) {
+            if (!fs.existsSync(root)) return [];
+            return fs.readdirSync(root, { recursive: true })
+              .map(entry => path.join(root, String(entry)))
+              .filter(file => fs.existsSync(file) && fs.statSync(file).isFile() && /\.sarif$/i.test(file));
+          }
+
+          const postProcessed = sarifFiles('codeql-results/post-processed');
+          const uniqueFiles = postProcessed.length ? postProcessed : sarifFiles('codeql-results');
+          if (!uniqueFiles.length) throw new Error('CodeQL did not produce a SARIF result file.');
+
+          const byKey = new Map();
+          const runs = [];
+          for (const file of uniqueFiles) {
+            const sarif = JSON.parse(fs.readFileSync(file, 'utf8'));
+            for (const run of sarif.runs || []) {
+              const rules = new Map((run.tool?.driver?.rules || []).map(rule => [rule.id, rule]));
+              const results = run.results || [];
+              runs.push({ file, tool: run.tool?.driver?.name || 'CodeQL', resultCount: results.length });
+              for (const result of results) {
+                const rule = rules.get(result.ruleId) || {};
+                const securitySeverity = Number(rule.properties?.['security-severity'] ?? result.properties?.['security-severity'] ?? 0);
+                const location = result.locations?.[0]?.physicalLocation;
+                const finding = {
+                  ruleId: result.ruleId || '',
+                  level: result.level || rule.defaultConfiguration?.level || 'warning',
+                  securitySeverity: Number.isFinite(securitySeverity) ? securitySeverity : 0,
+                  message: result.message?.text || '',
+                  path: location?.artifactLocation?.uri || '',
+                  startLine: location?.region?.startLine || null,
+                };
+                const key = `${finding.ruleId}|${finding.path}|${finding.startLine}|${finding.message}`;
+                byKey.set(key, finding);
+              }
+            }
+          }
+
+          const findings = [...byKey.values()];
+          const highOrCritical = findings.filter(finding => finding.securitySeverity >= 7.0);
+          const summary = {
+            analyzedCommit: process.env.EXPECTED_COMMIT,
+            checkoutCommit: require('child_process').execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
+            analyzedBranch: 'agent/blueprint-foundation',
+            sarifFiles: uniqueFiles,
+            runs,
+            totalFindings: findings.length,
+            highOrCriticalCount: highOrCritical.length,
+            findings,
+            passed: highOrCritical.length === 0,
+          };
+          if (summary.checkoutCommit !== summary.analyzedCommit) throw new Error(`CodeQL checkout mismatch: expected ${summary.analyzedCommit}, observed ${summary.checkoutCommit}`);
+          fs.mkdirSync('test-results/codeql', { recursive: true });
+          fs.writeFileSync('test-results/codeql/summary.json', JSON.stringify(summary, null, 2));
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## CodeQL exact-head evidence\n\n- Analyzed commit: ${summary.analyzedCommit}\n- Total findings: ${findings.length}\n- High or critical: ${highOrCritical.length}\n`);
+          if (highOrCritical.length) {
+            console.error(JSON.stringify(highOrCritical, null, 2));
+            process.exitCode = 1;
+          }
+          NODE
+      - name: Upload exact-head CodeQL evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: milestone-9-codeql-${{ env.EXPECTED_COMMIT }}
+          path: |
+            codeql-results
+            test-results/codeql/summary.json
+          if-no-files-found: warn
+          retention-days: 30
