@@ -18,6 +18,11 @@ const SHARED_FOOTER = `<footer class="avodah-footer global-footer" data-global-f
   </div>
 </footer>`;
 
+const normalizeRootAssets = (html) => html.replace(
+  /\b(href|src)=(['"])(?![a-z][a-z0-9+.-]*:|\/\/|\/|#|\?)([^'"]+)\2/gi,
+  (_match, attribute, quote, value) => `${attribute}=${quote}/${value}${quote}`,
+);
+
 const injectStylesheet = (html) => html.includes('/milestone-12d-fixes.css')
   ? html
   : html.replace(/<\/head>/i, `${STYLESHEET}</head>`);
@@ -83,7 +88,8 @@ const alignConsultationFooter = (html, file) => {
 };
 
 export const transformMilestone12DHtml = (html, file) => {
-  let output = injectStylesheet(html);
+  let output = normalizeRootAssets(html);
+  output = injectStylesheet(output);
   if (file === 'index.html') output = applyHomepageChanges(output);
   if (file === 'recruitment-application.html') output = applyRecruitmentChanges(output);
   output = applyConfirmationChanges(output, file);
