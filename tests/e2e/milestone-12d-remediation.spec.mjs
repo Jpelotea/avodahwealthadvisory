@@ -153,6 +153,10 @@ test(`${phase.toLowerCase()} form and confirmation DOM contract`, async ({ page 
     await expect(page.locator('[name="relevant_experience"]')).not.toHaveAttribute('required', '');
     await expect(page.locator('[name="reason_for_applying"]')).not.toHaveAttribute('required', '');
     await expect(page.getByText('Résumé upload is not required at this stage.')).toBeVisible();
+  }
+
+  await page.goto('/careers/', { waitUntil: 'domcontentloaded' });
+  if (phase === 'POST') {
     await expect(page.getByRole('link', { name: 'View Application Process' })).toBeVisible();
   }
 
