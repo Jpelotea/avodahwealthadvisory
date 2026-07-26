@@ -14,6 +14,18 @@ The associated owner choices are maintained in:
 
 - [`milestone-12c-owner-decision-form.md`](./milestone-12c-owner-decision-form.md)
 
+## Current human-review status
+
+| Result | Count |
+|---|---:|
+| PASS | 0 |
+| FAIL | 0 |
+| PARTIAL | 6 |
+| NOT TESTED | 53 |
+| NOT APPLICABLE | 0 |
+
+No full required check is recorded as PASS.
+
 ## Current finding summary
 
 | Category | IDs | Current status |
@@ -26,7 +38,7 @@ The associated owner choices are maintained in:
 | Recruitment decisions/corrections | RECRUIT-001 and RECRUIT-002 | Owner, privacy, retention, and copy decisions pending |
 | Future feature | RECRUIT-003 | Out of scope pending separate secure milestone |
 
-No Critical or High defect is confirmed. No required matrix check is marked PASS from the submitted evidence. Six matrix areas are PARTIAL and 53 remain NOT TESTED.
+No Critical or High defect is confirmed.
 
 ## Evidence gaps
 
