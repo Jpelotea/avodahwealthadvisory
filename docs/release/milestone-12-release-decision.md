@@ -1,208 +1,110 @@
-# Milestone 12 Release Decision
+# Milestone 12C Release Decision
 
 **Prepared:** July 26, 2026  
 **Decision:** **CONDITIONAL GO**  
 **Pull Request:** [#8](https://github.com/Jpelotea/avodahwealthadvisory/pull/8) — open, draft, and unmerged
 
-This decision is not permission to merge or deploy production.
+This decision is not permission to implement remediation, merge, or deploy production.
 
-## Accepted Milestone 11A baseline
+## Accepted technical baseline
 
-The following technical results remain accepted and closed unless new regression evidence appears:
+Milestone 11A technical gates remain accepted as closed. Forms isolation, schemas, synthetic submissions and cleanup, consent separation, browser automation, Lighthouse, consent-network, and CodeQL were not repeated because no public-source correction occurred.
 
-- protected credentials and isolated-project access passed;
-- clean fixture deployment passed;
-- Netlify Functions count is zero in the isolated fixture;
-- Edge Functions count is zero in the isolated fixture;
-- production configuration contamination was removed;
-- exactly six Netlify Forms were detected;
-- all six live schemas passed;
-- full synthetic testing passed after targeted closure;
-- processing and marketing consent separation passed;
-- honeypot behavior was verified;
-- duplicate and navigation behavior was documented;
-- confirmation routes passed;
-- analytics contained no form PII;
-- no production integration was contacted;
-- all synthetic submissions were deleted;
-- CodeQL passed;
-- no Critical or High technical blocker remains in Milestone 11 scope.
+## Genuine reviewer evidence recorded
 
-Completed technical gates were not repeated during Milestone 12 documentation preparation.
-
-## Human-review target
-
-| Item | Verified value |
+| Field | Value |
 |---|---|
-| Preview URL | https://deploy-preview-8--avodahwealthadvisory.netlify.app |
-| Immutable deployment | https://6a645172fbef1d00086b76c0--avodahwealthadvisory.netlify.app |
-| Deploy ID | `6a645172fbef1d00086b76c0` |
-| Branch | `agent/blueprint-foundation` |
-| Public website source revision | `e79e4f6fa6505b585c8fe17177db26adf4fb72eb` |
-| Current accepted Milestone 11A head before documentation | `a1061b14f486c474668c3bee279379df4a5e63d1` |
-| Source correspondence | The current branch is ahead of the accepted public revision through test-infrastructure, workflow-gate, and release-document changes only. Public browser-facing source remains the accepted Milestone 10 revision. |
-| Indexing protection | Deploy-preview meta robots and `X-Robots-Tag` specify `noindex, nofollow, noarchive`. |
-| Production target? | No. The review target is a Netlify deploy preview. |
+| Evidence ID | `M12C-JC-2026-07-26` |
+| Reviewer | JC Pelotea |
+| Role | Project Developer / Reviewer / Authorized Stakeholder |
+| Date | July 26, 2026; time not supplied |
+| Device and OS | Windows desktop; Windows 11 |
+| Browser | Google Chrome 150.0.7871.187 (Official Build), 64-bit |
+| Accepted scope | Selected 100% routes, Services at 200%, basic successful submissions, and submitted visual/content/workflow observations |
+| Formal authority not established | Legal, privacy, compliance, provider wording, recruitment compliance, retention, merge, and production release |
 
-No new public website deployment was created because later commits did not change public website source.
+The statement “Privacy is okay” is recorded as informal feedback only. It is not formal legal/privacy approval and does not complete a defined accessibility procedure.
 
-## Human accessibility status
+## Human-review status
 
-| Status | Count |
+| Result | Count |
 |---|---:|
 | PASS | 0 |
 | FAIL | 0 |
-| PARTIAL | 0 |
-| NOT TESTED | 59 |
+| PARTIAL | 6 |
+| NOT TESTED | 53 |
 | NOT APPLICABLE | 0 |
 
-Completed human tests: **none**.
+The six PARTIAL areas are:
 
-No reviewer name, environment, date, or result has been fabricated. The complete review matrix is in `milestone-12-human-accessibility-review.md`.
+1. Homepage Chromium route/zoom review.
+2. Consultation and Client Needs Check Chromium review.
+3. Recruitment Application Chromium review.
+4. General Inquiry Chromium review.
+5. Services Chromium review at 200%.
+6. Hover/active interaction-state contrast review.
 
-Required human-review blockers include:
+No full required check is recorded as PASS. Chrome 400%, remaining Chrome 200%, Firefox, NVDA, VoiceOver, keyboard-only workflow, mobile menu, physical touch targets, intentional form errors, complete visible focus, formal contrast, and remaining reflow procedures remain **NOT TESTED**.
 
-- Chromium 100%, 200%, and 400% zoom/reflow;
-- independent Firefox zoom/reflow;
-- NVDA screen-reader review;
-- VoiceOver/Safari review when a suitable device and reviewer are available;
-- keyboard-only consultation workflow;
-- mobile-menu keyboard interaction;
-- public-form error usability;
-- visible focus;
-- narrow-layout and 400% reflow edge cases;
-- human contrast edge cases;
-- mobile touch targets.
+## Provisional findings
 
-## Accessibility defects
+- A11Y-001 — Header CTA unreadable on hover; Moderate.
+- A11Y-002 — Footer email overlap; Moderate.
+- A11Y-003 — Homepage Needs Check CTA readability; Low–Moderate.
+- A11Y-004 — Services card reflow at 200%; Moderate provisional, evidence pending.
+- FORM-001 — Homepage Additional Notes field is currently required but requested as optional; Moderate.
+- UX-001 / UX-002 — Form typography and Consultation footer inconsistency; Low.
+- CONTENT-001 / CONTENT-002 — Messenger wording and reference-number guidance; Moderate/Low.
+- UX-003 — Redundant General Inquiry confirmation actions; Low.
+- RECRUIT-001 / RECRUIT-002 — Résumé-process and recruitment-field decisions pending.
+- RECRUIT-003 — Personalized application status is an out-of-scope future feature.
 
-Confirmed Critical defects: **0**  
-Confirmed High defects: **0**  
-Confirmed Moderate defects: **0**  
-Confirmed Low defects: **0**  
-Confirmed Advisory issues: **0**
+No Critical or High defect is confirmed. Moderate and Low findings require correction, acceptance, or deferral before final readiness.
 
-This does not indicate an accessibility pass. No defect can be confirmed or excluded until genuine human testing is performed. Review gaps are listed in `milestone-12-open-defects.md`.
+## Evidence and remediation documents
 
-Any confirmed Critical or High accessibility defect changes this decision to **NO-GO**.
+- [Milestone 12C review evidence and remediation plan](./milestone-12c-review-evidence-and-remediation-plan.md)
+- [Milestone 12C owner decision form](./milestone-12c-owner-decision-form.md)
+- [Baseline human accessibility matrix](./milestone-12-human-accessibility-review.md)
+- [Stakeholder approval register](./milestone-12-approval-register.md)
 
-## Stakeholder approvals
+The Milestone 12C evidence document is the authoritative addendum for the submitted JC review. Unsupported baseline rows remain NOT TESTED.
 
-All required decisions remain **PENDING**:
+## Public-source and testing status
 
-- human accessibility sign-off;
-- business and public-service wording;
-- provider and product wording;
-- legal, privacy, and consent;
-- retention and deletion;
-- compliance;
-- recruitment wording and process;
-- client-support ownership and response-time wording;
-- public contact and availability information;
-- scheduling;
-- Meta Pixel;
-- analytics and campaign tracking;
-- native Netlify Forms duplicate handling;
-- final stakeholder release recommendation;
-- merge authorization;
-- production deployment authorization.
+- Public website source change: none.
+- Form-schema or required-field change: none.
+- New preview: none.
+- Regression tests: not run; no test is required for evidence-intake documentation alone.
+- Production `main`: unchanged at `e9853d2d080f684dcb1e361856fe0a377224055e`.
+- Production deployment: not performed.
+- Scheduling: unchanged at `30/30/30`.
+- Meta Pixel: disabled.
+- Operations Hub: unchanged.
 
-The complete decision and retention registers are in `milestone-12-approval-register.md`.
+## Approval state
 
-## Current operational decisions
+Formal business, provider, legal/privacy, retention, compliance, recruitment, support, scheduling, Meta Pixel, duplicate-handling, merge, and production decisions remain **PENDING**.
 
-### Scheduling
+The owner-decision form must be completed before remediation implementation begins.
 
-- Active configuration: 30-minute consultation, 30-minute buffer before, 30-minute buffer after.
-- Proposed inactive configuration: 45-minute consultation, 15-minute buffer before, 15-minute buffer after.
-- Formal Milestone 12 decision: **DECISION PENDING**.
-- No scheduling setting was changed.
-
-### Meta Pixel
-
-- Technical state: disabled.
-- Formal decision: **DECISION PENDING**.
-- No activation or implementation is authorized.
-
-### Native Netlify Forms duplicates
-
-- Accepted limitation: reused workflow references and repeat POST behavior may create distinguishable duplicate records.
-- Current distinction mechanism: `lead_submission_id` provides record-level distinction in accepted technical evidence.
-- Operational owner, review process, service/reporting impact, and future idempotency decision: **PENDING**.
-- No new server-side submission architecture is authorized.
-
-### Retention and deletion
-
-- Approved periods: none recorded.
-- Approved deletion triggers and owners: none recorded.
-- Decision: **PENDING**.
-
-### Client support
-
-- Queue owner, alert recipient, monitor, operating hours, escalation, acknowledgement target, urgent-request limitation, out-of-scope process, and backup owner: **PENDING**.
-- No response-time promise is authorized.
-
-## Public-source corrections
-
-None.
-
-Milestone 12 preparation changed documentation only. It did not change:
-
-- public HTML or CSS;
-- shared public JavaScript;
-- public routes;
-- forms or consent behavior;
-- Netlify Functions or Edge Functions;
-- production Netlify configuration;
-- active scheduling;
-- Meta Pixel;
-- Operations Hub source or configuration.
-
-## Required regression testing
-
-No automated browser, accessibility, Lighthouse, consent-network, CSP, Forms, schema, synthetic-submission, cleanup, or CodeQL rerun is required for these documentation-only changes.
-
-When an approved public-source correction is made, rerun only the human and automated gates affected by that correction. A Critical or High correction requires a new preview and exact-revision verification before the decision can be reconsidered.
-
-## Release-decision rationale
+## Decision rationale
 
 **CONDITIONAL GO** remains appropriate because:
 
 - accepted technical gates remain closed;
-- no new Critical or High defect has been confirmed;
-- all required human accessibility checks remain incomplete;
-- all release-critical stakeholder approvals remain pending;
-- retention, support ownership, scheduling, Meta Pixel, and duplicate handling remain undecided;
-- merge and production authorization remain pending.
+- no Critical or High defect is confirmed;
+- genuine evidence identifies Moderate/Low issues needing decisions;
+- required human testing remains incomplete;
+- formal stakeholder approvals remain pending;
+- remediation scope has not been authorized.
 
-The status may advance to **READY FOR EXPLICIT MERGE AND PRODUCTION AUTHORIZATION** only after all required human reviews and stakeholder decisions are complete, and all Moderate or Low issues are corrected or explicitly accepted. That status still would not authorize a merge or production deployment.
+Return to **NO-GO** if later evidence confirms a core-workflow access block, a Critical/High defect, a material legal/privacy/compliance/recruitment issue, or a required missing pre-production capability.
 
-## Merge and deployment restrictions
+## Recommended owner action
 
-- Do not merge Pull Request #8.
-- Do not convert Pull Request #8 from draft.
-- Do not deploy production.
-- Do not alter the production Netlify site.
-- Do not enable Meta Pixel.
-- Do not change production scheduling.
+Complete `milestone-12c-owner-decision-form.md`, provide the missing screenshots and measurements, and explicitly approve the bounded remediation scope. No correction will be implemented before that approval.
 
-Two separate explicit instructions remain mandatory:
-
-1. authorization to merge Pull Request #8;
-2. authorization to deploy an identified approved revision to production.
-
-## Recommended owner actions
-
-1. Assign the five human-review environments listed in the accessibility review document.
-2. Complete and evidence the 59 human checks without converting unavailable checks to passes.
-3. Record every FAIL or PARTIAL result in the defect register and apply severity rules.
-4. Route the approval register to the designated business, provider/product, legal/privacy, compliance, recruitment, support, operations, and release approvers.
-5. Approve exact retention and deletion rules for every record category.
-6. Record explicit scheduling, Meta Pixel, and duplicate-handling decisions.
-7. Keep Pull Request #8 draft until the complete evidence package supports a separate merge decision.
-
-## Production and Operations Hub confirmation
-
-Production `main` remains unchanged at `e9853d2d080f684dcb1e361856fe0a377224055e`. No production deployment occurred.
+## Operations Hub hold
 
 > **The Avodah Operations Hub repository remains read-only. Operations Hub implementation work must wait until UAT-04 and all other active maintenance have been completed, the repository and TEST deployment have been confirmed stable, and the integration work has received separate approval.**
