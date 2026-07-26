@@ -32,8 +32,8 @@ html body .site-header .nav a.button.button-primary:active {
   color: var(--m12d-header-cta-text) !important;
 }
 
-.services-next-step-card .section-kicker {
-  color: #ff6b72;
+html body .services-next-step-card .section-kicker {
+  color: #ff6b72 !important;
 }
 
 .avodah-footer .footer-container,
